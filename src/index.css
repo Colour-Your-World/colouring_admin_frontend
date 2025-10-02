@@ -12,6 +12,9 @@
 @font-face {
   font-family: "Helvetica Neue";
   src: url("/src/assets/fonts/helveticaNeue/HelveticaNeueRoman.otf") format("opentype");
+
+
+  
   font-weight: 400;
   font-style: normal;
 }
