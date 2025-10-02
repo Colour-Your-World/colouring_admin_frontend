@@ -1,12 +1,17 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import premium from '../assets/premium.svg'
 import deleteIcon from '../assets/delete.svg'
 import editIcon from '../assets/edit.svg'
+import DeleteModal from './DeleteModal'
 
 const BookList = ({ books }) => {
+  const navigate = useNavigate()
   const [bookStatuses, setBookStatuses] = useState(
     books.reduce((acc, book) => ({ ...acc, [book.id]: book.status === 'active' }), {})
   )
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+  const [bookToDelete, setBookToDelete] = useState(null)
 
   const toggleBookStatus = (bookId) => {
     setBookStatuses(prev => ({
@@ -16,13 +21,22 @@ const BookList = ({ books }) => {
   }
 
   const handleEdit = (bookId) => {
-    console.log('Edit book:', bookId)
-    // Add edit functionality here
+    const book = books.find(b => b.id === bookId)
+    navigate(`/books/edit/${bookId}`, { state: { book } })
   }
 
   const handleDelete = (bookId) => {
-    console.log('Delete book:', bookId)
-    // Add delete functionality here
+    const book = books.find(b => b.id === bookId)
+    setBookToDelete(book)
+    setIsDeleteModalOpen(true)
+  }
+
+  const confirmDelete = () => {
+    if (bookToDelete) {
+      console.log('Deleting book:', bookToDelete.id)
+    }
+    setIsDeleteModalOpen(false)
+    setBookToDelete(null)
   }
 
   return (
@@ -179,6 +193,15 @@ const BookList = ({ books }) => {
           )
         })}
       </div>
+
+      {/* Delete Modal */}
+      <DeleteModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onDelete={confirmDelete}
+        userName={bookToDelete?.title || 'this book'}
+        deleteType="book"
+      />
     </div>
   )
 }

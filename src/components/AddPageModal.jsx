@@ -3,14 +3,10 @@ import closeCircle from '../assets/closeCircle.svg'
 import upload from '../assets/upload.svg'
 import Button from './Button'
 
-
-
-const AddBookModal = ({ isOpen, onClose, onAddBook }) => {
+const AddPageModal = ({ isOpen, onClose, onAddPage }) => {
     const [formData, setFormData] = useState({
-        bookName: '',
-        description: '',
-        isFree: true,
-        price: '',
+        pageTitle: '',
+        pageType: 'coloring', // 'cover' or 'coloring'
         file: null
     })
 
@@ -29,15 +25,25 @@ const AddBookModal = ({ isOpen, onClose, onAddBook }) => {
 
     const handleSubmit = (e) => {
         e.preventDefault()
-        onAddBook(formData)
+        if (!formData.pageTitle || !formData.file) {
+            alert('Page Title and Image file are required.')
+            return
+        }
+
+        const newPage = {
+            pageTitle: formData.pageTitle,
+            pageType: formData.pageType,
+            file: formData.file.name, // In a real app, you'd upload the file
+            image: URL.createObjectURL(formData.file) // Create preview URL
+        }
+        onAddPage(newPage)
+        onClose()
+        // Reset form
         setFormData({
-            bookName: '',
-            description: '',
-            isFree: true,
-            price: '',
+            pageTitle: '',
+            pageType: 'coloring',
             file: null
         })
-        onClose()
     }
 
     const handleFileChange = (e) => {
@@ -48,10 +54,10 @@ const AddBookModal = ({ isOpen, onClose, onAddBook }) => {
 
     return (
         <div className="fixed inset-0 flex items-center justify-center p-4 z-50" style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)' }}>
-            <div className="bg-[#FBFFF5] rounded-2xl w-full max-w-2xl max-h-[88vh] overflow-hidden">
+            <div className="bg-[#FBFFF5] rounded-2xl w-full max-w-lg max-h-[85vh] overflow-hidden">
                 {/* Header */}
                 <div className="flex items-center justify-between py-3 px-5">
-                    <h2 className="text-xl font-semibold text-primary">Add New Book</h2>
+                    <h2 className="text-xl font-semibold text-primary">Add New Page</h2>
                     <button
                         onClick={onClose}
                         className="p-2 transition-colors cursor-pointer"
@@ -67,20 +73,20 @@ const AddBookModal = ({ isOpen, onClose, onAddBook }) => {
                         <div className="flex flex-col items-center gap-3">
                             <img src={upload} alt="Upload" className="w-16 h-16" />
                             <div>
-                                <h3 className="text-lg font-semibold text-primary mb-2">Upload new book</h3>
-                                <p className="text-sm text-gray-500">Supported format: PDF</p>
+                                <h3 className="text-lg font-semibold text-primary mb-2">Upload page image</h3>
+                                <p className="text-sm text-gray-500">Supported formats: PNG, JPG, PDF</p>
                             </div>
                             <Button
-                                type="button "
+                                type="button"
                                 className="cursor-pointer"
-                                onClick={() => document.getElementById('fileInput').click()}
+                                onClick={() => document.getElementById('pageFileInput').click()}
                             >
                                 Choose File
                             </Button>
                             <input
-                                id="fileInput"
+                                id="pageFileInput"
                                 type="file"
-                                accept=".pdf"
+                                accept=".png,.jpg,.jpeg,.pdf"
                                 onChange={handleFileChange}
                                 className="hidden"
                             />
@@ -94,79 +100,49 @@ const AddBookModal = ({ isOpen, onClose, onAddBook }) => {
 
                     {/* Form Fields */}
                     <div className="space-y-4">
-                        {/* Book Name */}
+                        {/* Page Title */}
                         <div>
                             <label className="block text-sm font-medium text-primary mb-2">
-                                Book Name<span className="text-red-500">*</span>
+                                Page Title<span className="text-red-500">*</span>
                             </label>
                             <input
                                 type="text"
                                 required
-                                value={formData.bookName}
-                                onChange={(e) => setFormData({ ...formData, bookName: e.target.value })}
-                                placeholder="Enter book name"
+                                value={formData.pageTitle}
+                                onChange={(e) => setFormData({ ...formData, pageTitle: e.target.value })}
+                                placeholder="Enter page title"
                                 className="w-full px-4 py-3 border-common rounded-lg focus:outline-none"
                             />
                         </div>
 
-                        {/* Description */}
-                        <div>
-                            <label className="block text-sm font-medium text-primary mb-2">
-                                Description
-                            </label>
-                            <textarea
-                                value={formData.description}
-                                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                placeholder="Enter description"
-                                rows={4}
-                                className="w-full px-4 py-3 border-common rounded-lg"
-                            />
-                        </div>
-
-                        {/* Book Type */}
+                        {/* Page Type */}
                         <div>
                             <label className="block text-sm font-medium text-primary mb-3">
-                                Is Book Free For User?
+                                Page Type
                             </label>
                             <div className="flex gap-6">
                                 <label className="flex items-center gap-2 cursor-pointer">
                                     <input
                                         type="radio"
-                                        name="bookType"
-                                        checked={formData.isFree}
-                                        onChange={() => setFormData({ ...formData, isFree: true, price: '' })}
+                                        name="pageType"
+                                        value="cover"
+                                        checked={formData.pageType === 'cover'}
+                                        onChange={(e) => setFormData({ ...formData, pageType: e.target.value })}
                                     />
-                                    <span className="text-sm text-primary">Free</span>
+                                    <span className="text-sm text-primary">Cover Page</span>
                                 </label>
-                                <label className="flex items-center gap-2 text-secondary cursor-pointer">
+                                <label className="flex items-center gap-2 cursor-pointer">
                                     <input
                                         type="radio"
-                                        name="bookType"
-                                        checked={!formData.isFree}
-                                        onChange={() => setFormData({ ...formData, isFree: false })}
+                                        name="pageType"
+                                        value="coloring"
+                                        checked={formData.pageType === 'coloring'}
+                                        onChange={(e) => setFormData({ ...formData, pageType: e.target.value })}
                                     />
-                                    <span className="text-sm text-primary">Premium</span>
+                                    <span className="text-sm text-primary">Coloring Page</span>
                                 </label>
                             </div>
                         </div>
-
-                        {/* Price (if Premium) */}
-                        {!formData.isFree && (
-                            <div>
-                                <label className="block text-sm font-medium text-primary mb-2">
-                                </label>
-                                <input
-                                    type="number"
-                                    required={!formData.isFree}
-                                    value={formData.price}
-                                    onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                                    placeholder="Enter price"
-                                    min="0"
-                                    step="0.01"
-                                    className="w-full px-4 py-3 border-common rounded-lg focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                />
-                            </div>
-                        )}
                     </div>
 
                     {/* Action Buttons */}
@@ -175,7 +151,7 @@ const AddBookModal = ({ isOpen, onClose, onAddBook }) => {
                             type="submit"
                             className="cursor-pointer"
                         >
-                            Add Book
+                            Add Page
                         </Button>
                     </div>
                 </form>
@@ -184,4 +160,4 @@ const AddBookModal = ({ isOpen, onClose, onAddBook }) => {
     )
 }
 
-export default AddBookModal
+export default AddPageModal

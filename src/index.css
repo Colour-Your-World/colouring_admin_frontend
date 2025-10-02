@@ -79,22 +79,21 @@ body {
   
   /* Custom scrollbar */
   .custom-scrollbar::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 4px;
+    height: 4px;
   }
   
   .custom-scrollbar::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 3px;
+    background: transparent;
   }
   
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: #c1c1c1;
-    border-radius: 3px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 2px;
   }
   
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #a8a8a8;
+    background: rgba(0, 0, 0, 0.3);
   }
   
   /* Smooth transitions */
