@@ -52,7 +52,7 @@ const Input = ({
                     <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 focus:outline-none hover:opacity-70 transition-opacity"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 focus:outline-none hover:opacity-70 transition-opacity cursor-pointer"
                     >
                         <img
                             src={showPassword ? eyeIcon : eyeClosedIcon}

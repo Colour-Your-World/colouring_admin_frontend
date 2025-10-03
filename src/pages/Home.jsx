@@ -168,9 +168,9 @@ export default function Dashboard() {
         {/* Quick Actions */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
           <div className="rounded-2xl p-4 sm:p-5 flex items-center justify-between border-common ">
-            <div className="flex items-center">
+            <div className="flex items-center"
+            >
               <button 
-                onClick={handleAddNewBook}
                 className="rounded-full mr-3 sm:mr-4 cursor-pointer"
               >
                 <img
@@ -183,17 +183,20 @@ export default function Dashboard() {
                 Add New Book
               </span>
             </div>
+            <div onClick={handleAddNewBook} 
+              className="cursor-pointer"
+              > 
             <img
               src={ArrowIcon}
               alt="Arrow"
               className="w-6 h-6 sm:w-8 sm:h-8 text-gray-400"
             />
+            </div>
           </div>
  
           <div className="rounded-2xl p-4 sm:p-5 flex items-center justify-between border-common ">
             <div className="flex items-center">
               <button 
-                onClick={handleManagePlans}
                 className="rounded-full mr-3 sm:mr-4 cursor-pointer"
               >
                 <img
@@ -206,11 +209,13 @@ export default function Dashboard() {
                 Manage Plans
               </span>
             </div>
+            <div onClick={handleManagePlans} className="cursor-pointer">
             <img
               src={ArrowIcon}
               alt="Arrow"
               className="w-6 h-6 sm:w-8 sm:h-8 text-gray-400"
             />
+            </div>
           </div>
         </div>
  
