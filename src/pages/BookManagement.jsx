@@ -7,6 +7,7 @@ import AddBookModal from '../components/AddBookModal'
 import arrowLeft from '../assets/arrowLeft.svg'
 import magnifier from '../assets/magnifier.svg'
 import plusIcon from '../assets/addCircle.svg'
+import { useNavigate } from 'react-router-dom'
 
 const BookManagement = () => {
     const [searchTerm, setSearchTerm] = useState('')
@@ -104,18 +105,23 @@ const BookManagement = () => {
 
     const handleAddBook = (bookData) => {
         console.log('Adding new book:', bookData)
-        // Here you would typically add the book to your data source
-        // For now, we'll just log the data
     }
+
+    const navigate = useNavigate()
 
     return (
         <div className="min-h-screen">
             <Header />
             <div className="bg-[#FBFFF5]">
-            <div className="container mx-auto px-4 py-6 max-w-8xl ">
+            <div className="container mx-auto px-4 py-6 max-w-7xl ">
                 {/* Title Bar */}
                 <div className="flex items-center gap-3 pb-4 ">
-                    <img src={arrowLeft} alt="Back" className="w-6 h-6 cursor-pointer" />
+                    <button 
+                        onClick={() => navigate(-1)}
+                        className="flex items-center gap-2 text-primary hover:text-secondary transition-colors cursor-pointer"
+                    >
+                        <img src={arrowLeft} alt="Back" className="w-6 h-6" />
+                    </button>
                     <h1 className="text-xl font-semibold text-primary">Manage your books</h1>
                 </div>
                 <div className="rounded-2xl border-common">

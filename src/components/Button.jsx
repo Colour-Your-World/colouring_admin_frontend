@@ -15,14 +15,14 @@ const Button = ({
   
   const baseClasses = `
     font-semibold transition-all duration-200 
-    focus:outline-none 
+    focus:outline-none cursor-pointer
     ${fullWidth ? 'w-full' : ''}
     ${disabled || loading ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-90'}
   `;
 
   const variantClasses = {
     primary: 'bg-primary text-white ',
-    secondary: 'bg-white text-[#048B50] border-2 border-[#048B50] hover:bg-[#048B50] hover:text-white ',
+    secondary: 'bg-[#F3F8EC] text-[#0F100B] border-2 border-[#0F100B]!',
     outline: 'bg-transparent text-[#048B50] border-2 border-[#048B50] hover:bg-[#048B50] hover:text-white ',
     ghost: 'bg-transparent text-gray-600 hover:bg-gray-100 ',
   };

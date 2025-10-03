@@ -12,9 +12,6 @@
 @font-face {
   font-family: "Helvetica Neue";
   src: url("/src/assets/fonts/helveticaNeue/HelveticaNeueRoman.otf") format("opentype");
-
-
-  
   font-weight: 400;
   font-style: normal;
 }
@@ -48,6 +45,7 @@ body {
 :root {
   --color-text-primary: #0F100B;
   --color-text-secondary: #595959;
+  --color-border: #E0E0E0;
   --font-vag: 'VAG Rounded Next', sans-serif;
   --font-helvetica: 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
@@ -105,6 +103,7 @@ body {
 /* Table row rounded corners */
 .rounded-table-row {
   border-radius: 1rem;
+  overflow: hidden;
 }
 
 .rounded-table-row td:first-child {
@@ -115,6 +114,25 @@ body {
 .rounded-table-row td:last-child {
   border-top-right-radius: 1rem;
   border-bottom-right-radius: 1rem;
+}
+
+/* Table containment */
+table {
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+tbody tr {
+  overflow: hidden;
+}
+
+/* Table header rounded corners */
+thead tr.rounded-2xl th:first-child {
+  border-bottom-left-radius: 1rem !important;
+}
+
+thead tr.rounded-2xl th:last-child {
+  border-bottom-right-radius: 1rem !important;
 }
 
 /* Custom radio button styling */

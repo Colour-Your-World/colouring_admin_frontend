@@ -64,7 +64,8 @@ const SuspendModal = ({ isOpen, onClose, onSuspend, userName = "this user" }) =>
                             type="button"
                             variant="secondary"
                             onClick={onClose}
-                            className="px-6 py-2"
+                            className="px-6 py-2 cursor-pointer rounded-full bg-[#FBFFF5] text-primary"
+                            style={{ border: '1px solid #0F100B' }}
                         >
                             Cancel
                         </Button>
