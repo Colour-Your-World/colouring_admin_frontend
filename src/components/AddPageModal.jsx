@@ -114,35 +114,6 @@ const AddPageModal = ({ isOpen, onClose, onAddPage }) => {
                                 className="w-full px-4 py-3 border-common rounded-lg focus:outline-none"
                             />
                         </div>
-
-                        {/* Page Type */}
-                        <div>
-                            <label className="block text-sm font-medium text-primary mb-3">
-                                Page Type
-                            </label>
-                            <div className="flex gap-6">
-                                <label className="flex items-center gap-2 cursor-pointer">
-                                    <input
-                                        type="radio"
-                                        name="pageType"
-                                        value="cover"
-                                        checked={formData.pageType === 'cover'}
-                                        onChange={(e) => setFormData({ ...formData, pageType: e.target.value })}
-                                    />
-                                    <span className="text-sm text-primary">Cover Page</span>
-                                </label>
-                                <label className="flex items-center gap-2 cursor-pointer">
-                                    <input
-                                        type="radio"
-                                        name="pageType"
-                                        value="coloring"
-                                        checked={formData.pageType === 'coloring'}
-                                        onChange={(e) => setFormData({ ...formData, pageType: e.target.value })}
-                                    />
-                                    <span className="text-sm text-primary">Coloring Page</span>
-                                </label>
-                            </div>
-                        </div>
                     </div>
 
                     {/* Action Buttons */}
