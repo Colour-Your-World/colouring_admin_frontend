@@ -4,6 +4,7 @@ import Input from '../components/Input';
 import Button from '../components/Button';
 import LogoutModal from '../components/LogoutModal';
 import { useAuth } from '../contexts/AuthContext';
+import apiService from '../services/api';
 import editUserIcon from '../assets/editUser.svg';
 import emailIcon from '../assets/email.svg';
 import logoutIcon from '../assets/logout.svg';
@@ -22,15 +23,42 @@ const EditProfile = () => {
     });
     const [selectedFile, setSelectedFile] = useState(null);
     const [previewUrl, setPreviewUrl] = useState(null);
+    const [isSaving, setIsSaving] = useState(false);
+    const [uploadError, setUploadError] = useState(null);
+
+    // Fetch fresh user data when component mounts
+    useEffect(() => {
+        const fetchUserData = async () => {
+            try {
+                const response = await apiService.getCurrentUser();
+                if (response.success) {
+                    const userData = response.data.user;
+                    updateUser(userData);
+                    setFormData({
+                        userName: userData.name || '',
+                        email: userData.email || '',
+                        profilePhoto: userData.profilePhoto || ''
+                    });
+                    setPreviewUrl(userData.profilePhoto || null);
+                }
+            } catch (error) {
+                console.error('Error fetching user data:', error);
+            }
+        };
+
+        fetchUserData();
+    }, []);
 
     // Update form data when user changes
     useEffect(() => {
-        setFormData({
-            userName: user?.name || '',
-            email: user?.email || '',
-            profilePhoto: user?.profilePhoto || ''
-        });
-        setPreviewUrl(user?.profilePhoto || null);
+        if (user) {
+            setFormData({
+                userName: user?.name || '',
+                email: user?.email || '',
+                profilePhoto: user?.profilePhoto || ''
+            });
+            setPreviewUrl(user?.profilePhoto || null);
+        }
     }, [user]);
 
     const handleInputChange = (e) => {
@@ -68,17 +96,49 @@ const EditProfile = () => {
         setIsEditMode(true);
     };
 
-    const handleSave = () => {
-        setIsEditMode(false);
-        // Update user data in context
-        const updatedUser = {
-            ...user,
-            name: formData.userName,
-            email: formData.email,
-            profilePhoto: previewUrl || null
-        };
-        updateUser(updatedUser);
-        setSelectedFile(null); // Clear selected file
+    const handleSave = async () => {
+        try {
+            setIsSaving(true);
+            setUploadError(null);
+
+            let profilePhotoUrl = user?.profilePhoto || null;
+
+            // If a new file is selected, upload it first
+            if (selectedFile) {
+                const uploadResponse = await apiService.uploadProfilePhoto(selectedFile);
+                
+                if (uploadResponse.success) {
+                    profilePhotoUrl = uploadResponse.data.profilePhoto;
+                    setPreviewUrl(profilePhotoUrl);
+                }
+            }
+
+            // Update profile data (name, email, etc.)
+            const profileData = {
+                name: formData.userName,
+                email: formData.email,
+            };
+
+            const updateResponse = await apiService.updateProfile(profileData);
+            
+            if (updateResponse.success) {
+                // Update user data in context with latest data from backend
+                const updatedUser = {
+                    ...updateResponse.data.user,
+                    profilePhoto: profilePhotoUrl
+                };
+                updateUser(updatedUser);
+                setIsEditMode(false);
+                setSelectedFile(null);
+            } else {
+                setUploadError(updateResponse.error || 'Failed to update profile');
+            }
+        } catch (error) {
+            console.error('Error saving profile:', error);
+            setUploadError(error.message || 'Failed to save profile');
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     const handleCancel = () => {

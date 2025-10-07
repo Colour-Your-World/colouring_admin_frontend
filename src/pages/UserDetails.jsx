@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate, useLocation, useParams } from 'react-router-dom'
+import { useUsers } from '../hooks/useUsers'
 import arrowLeft from '../assets/arrowLeft.svg'
 import calendar from '../assets/calendar.svg'
 import threeDot from '../assets/3Dot.svg'
 import exportIcon from '../assets/export.svg'
 import deleteUser from '../assets/deleteUser.svg'
 import suspend from '../assets/suspend.svg'
+import profileIcon from '../assets/profile2.svg'
 import Header from '../components/Header'
 import SuspendModal from '../components/SuspendModal'
 import DeleteModal from '../components/DeleteModal'
@@ -13,24 +15,47 @@ import DeleteModal from '../components/DeleteModal'
 const UserDetails = () => {
     const navigate = useNavigate()
     const location = useLocation()
-    const user = location.state?.user || {
-        id: 1,
-        name: "John Doe",
-        email: "john@email.com",
-        plan: "Yearly",
-        expiryDate: "12 Jan 2026",
-        purchases: "3 Books",
-        lastActive: "Today 2:30PM",
-        avatar: null
-    }
-
+    const { id: userId } = useParams()
+    const { getUser, updateUser, deleteUser: deleteUserAPI } = useUsers()
+    
+    const [user, setUser] = useState(location.state?.user || null)
+    const [isLoading, setIsLoading] = useState(false)
     const [accountStatus, setAccountStatus] = useState(true)
     const [isDropdownOpen, setIsDropdownOpen] = useState(false)
     const [isSuspendModalOpen, setIsSuspendModalOpen] = useState(false)
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
     const [isPlanDropdownOpen, setIsPlanDropdownOpen] = useState(false)
+    const [isSuspending, setIsSuspending] = useState(false)
+    const [isDeleting, setIsDeleting] = useState(false)
     const dropdownRef = useRef(null)
     const planDropdownRef = useRef(null)
+
+    // Fetch user data if not available in location state
+    useEffect(() => {
+        const fetchUserData = async () => {
+            if (!user && userId) {
+                setIsLoading(true)
+                const result = await getUser(userId)
+                if (result.success) {
+                    const userData = result.data
+                    setUser({
+                        id: userData._id,
+                        name: userData.name,
+                        email: userData.email,
+                        plan: userData.role === 'admin' ? 'Admin' : 'Free',
+                        expiryDate: userData.isActive ? 'Dec 31, 2025' : 'Expired',
+                        purchases: '0 Books',
+                        lastActive: new Date(userData.createdAt).toLocaleDateString(),
+                        avatar: userData.profilePhoto || null
+                    })
+                    setAccountStatus(userData.isActive)
+                }
+                setIsLoading(false)
+            }
+        }
+        fetchUserData()
+    }, [userId])
+
 
     // Sample data for purchases
     const purchases = [
@@ -112,16 +137,44 @@ const UserDetails = () => {
         console.log('Export user report clicked')
     }
 
-    const handleConfirmSuspend = () => {
-        setIsSuspendModalOpen(false)
-        // Add suspend confirmation logic here
-        console.log('User suspended')
+    const handleConfirmSuspend = async () => {
+        if (!user) return
+
+        try {
+            setIsSuspending(true)
+            const result = await updateUser(user.id, { isActive: false })
+            
+            if (result.success) {
+                setAccountStatus(false)
+                setIsSuspendModalOpen(false)
+            } else {
+                alert('Failed to suspend user. Please try again.')
+            }
+        } catch (error) {
+            alert('Failed to suspend user. Please try again.')
+        } finally {
+            setIsSuspending(false)
+        }
     }
 
-    const handleConfirmDelete = () => {
-        setIsDeleteModalOpen(false)
-        // Add delete confirmation logic here
-        console.log('Account deleted')
+    const handleConfirmDelete = async () => {
+        if (!user) return
+
+        try {
+            setIsDeleting(true)
+            const result = await deleteUserAPI(user.id)
+            
+            if (result.success) {
+                setIsDeleteModalOpen(false)
+                navigate('/users')
+            } else {
+                alert('Failed to delete user. Please try again.')
+            }
+        } catch (error) {
+            alert('Failed to delete user. Please try again.')
+        } finally {
+            setIsDeleting(false)
+        }
     }
 
     const handlePlanDropdownToggle = () => {
@@ -197,16 +250,26 @@ const UserDetails = () => {
                 <div className="px-2 py-4 mb-4 sm:mb-6">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                         <div className="flex items-center gap-3 sm:gap-4">
-                            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
-                                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-300 rounded-full flex items-center justify-center">
-                                    <span className="text-sm sm:text-lg font-medium text-gray-600">
-                                        {user.name.split(' ').map(n => n[0]).join('')}
-                                    </span>
-                                </div>
+                            <div className="w-12 h-12 sm:w-20 sm:h-20 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center border-3 border-gray-300">
+                                {user?.avatar ? (
+                                    <img 
+                                        src={user.avatar} 
+                                        alt={user.name}
+                                        className="w-full h-full object-cover"
+                                    />
+                                ) : (
+                                    <div className="w-full h-full bg-gray-200 rounded-full flex items-center justify-center">
+                                        <img 
+                                            src={profileIcon} 
+                                            alt="Default Profile"
+                                            className="w-6 h-6 sm:w-8 sm:h-8 opacity-60"
+                                        />
+                                    </div>
+                                )}
                             </div>
                             <div>
-                                <h2 className="text-base sm:text-lg font-semibold text-primary">{user.name}</h2>
-                                <p className="text-xs sm:text-sm text-secondary">{user.email}</p>
+                                <h2 className="text-base sm:text-lg font-semibold text-primary">{user?.name || 'User'}</h2>
+                                <p className="text-xs sm:text-sm text-secondary">{user?.email || ''}</p>
                             </div>
                         </div>
                         <div className="flex items-center gap-2 sm:gap-3">

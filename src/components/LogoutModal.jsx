@@ -3,7 +3,7 @@ import closeCircle from '../assets/closeCircle.svg'
 import deleteModal from '../assets/deleteModal.svg'
 import Button from './Button'
 
-const LogoutModal = ({ isOpen, onClose, onLogout }) => {
+const LogoutModal = ({ isOpen, onClose, onConfirm, onLogout }) => {
     // Prevent body scroll when modal is open
     useEffect(() => {
         if (isOpen) {
@@ -18,8 +18,13 @@ const LogoutModal = ({ isOpen, onClose, onLogout }) => {
     }, [isOpen])
 
     const handleLogout = () => {
-        onLogout()
-        onClose()
+        // Support both onConfirm and onLogout for backward compatibility
+        if (onConfirm) {
+            onConfirm()
+        } else if (onLogout) {
+            onLogout()
+            onClose()
+        }
     }
 
     if (!isOpen) return null

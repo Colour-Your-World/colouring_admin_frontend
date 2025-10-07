@@ -16,25 +16,34 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Check if user is logged in on app start
+  // Check if user is logged in on app start and fetch user data
   useEffect(() => {
-    const token = localStorage.getItem('accessToken');
-    const userData = localStorage.getItem('userData');
-    
-    if (token && userData) {
-      try {
-        const parsedUser = JSON.parse(userData);
-        setUser(parsedUser);
-        setIsAuthenticated(true);
+    const fetchCurrentUser = async () => {
+      const token = localStorage.getItem('accessToken');
+      
+      if (token) {
         apiService.setToken(token);
-      } catch (error) {
-        console.error('Error parsing user data:', error);
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('userData');
+        try {
+          const response = await apiService.getCurrentUser();
+          if (response.success) {
+            setUser(response.data.user);
+            setIsAuthenticated(true);
+          } else {
+            // Token invalid, clear it
+            localStorage.removeItem('accessToken');
+            apiService.setToken(null);
+          }
+        } catch (error) {
+          console.error('Error fetching current user:', error);
+          localStorage.removeItem('accessToken');
+          apiService.setToken(null);
+        }
       }
-    }
-    
-    setIsLoading(false);
+      
+      setIsLoading(false);
+    };
+
+    fetchCurrentUser();
   }, []);
 
   const login = async (email, password) => {
@@ -45,10 +54,9 @@ export const AuthProvider = ({ children }) => {
       if (response.success) {
         const { user: userData, tokens } = response.data;
         
-        // Store token and user data
+        // Store only token
         apiService.setToken(tokens.accessToken);
         localStorage.setItem('accessToken', tokens.accessToken);
-        localStorage.setItem('userData', JSON.stringify(userData));
         
         setUser(userData);
         setIsAuthenticated(true);
@@ -66,8 +74,7 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     // Clear all stored data
     apiService.setToken(null);
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('userData');
+    localStorage.clear(); // Clear all localStorage items
     
     setUser(null);
     setIsAuthenticated(false);
@@ -75,7 +82,6 @@ export const AuthProvider = ({ children }) => {
 
   const updateUser = (updatedUser) => {
     setUser(updatedUser);
-    localStorage.setItem('userData', JSON.stringify(updatedUser));
   };
 
   const value = {

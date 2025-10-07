@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import apiService from '../services/api';
 import logo from '../assets/logo.svg';
 import downIcon from '../assets/down.svg';
 import logoutIcon from '../assets/dropLogout.svg';
@@ -9,9 +10,27 @@ import LogoutModal from './LogoutModal';
 
 const Header = () => {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user, logout, updateUser } = useAuth();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+
+  // Fetch fresh user data when component mounts
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (!user) {
+        try {
+          const response = await apiService.getCurrentUser();
+          if (response.success) {
+            updateUser(response.data.user);
+          }
+        } catch (error) {
+          console.error('Error fetching user data:', error);
+        }
+      }
+    };
+
+    fetchUserData();
+  }, []);
 
   // Extract first name from full name or use default
   const firstName = user?.name ? user.name.split(' ')[0] : 'User';

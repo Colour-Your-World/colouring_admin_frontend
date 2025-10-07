@@ -11,7 +11,8 @@ const ManageUsers = () => {
     const navigate = useNavigate()
     const [isSuspendModalOpen, setIsSuspendModalOpen] = useState(false)
     const [userToSuspend, setUserToSuspend] = useState(null)
-    const { users: apiUsers, isLoading, error } = useUsers()
+    const [isSuspending, setIsSuspending] = useState(false)
+    const { users: apiUsers, isLoading, error, updateUser } = useUsers()
     
     // Transform API users to match UI format
     const users = apiUsers.map(user => ({
@@ -34,10 +35,27 @@ const ManageUsers = () => {
         navigate(`/users/${user.id}`, { state: { user } })
     }
 
-    const confirmSuspend = () => {
-        console.log('Suspending user:', userToSuspend)
-        setIsSuspendModalOpen(false)
-        setUserToSuspend(null)
+    const confirmSuspend = async () => {
+        if (!userToSuspend) return
+
+        try {
+            setIsSuspending(true)
+            // Toggle user's active status
+            const result = await updateUser(userToSuspend.id, { 
+                isActive: false 
+            })
+            
+            if (result.success) {
+                setIsSuspendModalOpen(false)
+                setUserToSuspend(null)
+            } else {
+                alert('Failed to suspend user. Please try again.')
+            }
+        } catch (error) {
+            alert('Failed to suspend user. Please try again.')
+        } finally {
+            setIsSuspending(false)
+        }
     }
 
 

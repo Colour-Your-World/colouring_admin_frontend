@@ -73,8 +73,60 @@ class ApiService {
     });
   }
 
-  async getUsers() {
-    return this.request('/auth/admin/users');
+  async getCurrentUser() {
+    return this.request('/auth/me');
+  }
+
+  async updateProfile(userData) {
+    return this.request('/auth/me', {
+      method: 'PUT',
+      body: JSON.stringify(userData),
+    });
+  }
+
+  // User APIs
+  async getUsers(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    const endpoint = queryString ? `/auth/users?${queryString}` : '/auth/users';
+    return this.request(endpoint);
+  }
+
+  async getUser(userId) {
+    return this.request(`/auth/users/${userId}`);
+  }
+
+  async updateUser(userId, userData) {
+    return this.request(`/auth/users/${userId}`, {
+      method: 'PUT',
+      body: JSON.stringify(userData),
+    });
+  }
+
+  async deleteUser(userId) {
+    return this.request(`/auth/users/${userId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async uploadProfilePhoto(file) {
+    const formData = new FormData();
+    formData.append('profilePhoto', file);
+
+    const url = `${this.baseURL}/auth/upload-profile-photo`;
+    const config = {
+      method: 'POST',
+      headers: this.getMultipartHeaders(),
+      body: formData,
+    };
+
+    const response = await fetch(url, config);
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to upload profile photo');
+    }
+
+    return data;
   }
 
   // Book APIs

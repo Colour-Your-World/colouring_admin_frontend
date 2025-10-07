@@ -3,51 +3,89 @@ import { useNavigate } from "react-router-dom";
 import Header from "../components/Header";
 import AddBookModal from "../components/AddBookModal";
 import { useBooks } from "../hooks/useBooks";
+import apiService from "../services/api";
 import BookIcon from "../assets/books.svg";
 import ProfileIcon from "../assets/profile.svg";
 import SubscriptionIcon from "../assets/subscriptions.svg";
-import PremiumIcon from "../assets/premium.svg";
 import DollarIcon from "../assets/dollor.svg";
 import PlusIcon from "../assets/plus.svg";
 import Dollar2Icon from "../assets/dollor2.svg";
 import ArrowIcon from "../assets/altArrowRight.svg";
- 
 import DailyActivities from "../assets/book2.svg";
-import FarmAnimals from "../assets/book4.svg";
-import Dinosaur from "../assets/book4.svg";
-import DotNumbers from "../assets/book5.svg";
-import FarmAnimal from "../assets/book6.svg";
-
-import User from "../assets/profile2.svg";
-
+import ProfileIcon1 from "../assets/profile2.svg";
 import CrownIcon from "../assets/premium.svg";
- 
-const stats = [
-  { icon: BookIcon, value: 12, label: "Books Published" },
-  { icon: ProfileIcon, value: "1,240", label: "Active Users" },
-  { icon: SubscriptionIcon, value: 340, label: "Active Subscriptions" },
-  { icon: DollarIcon, value: "$4,560", label: "Revenue" },
-];
- 
-// Empty array for when no books are available
-const emptyBooks = [];
- 
-// Empty array for when no users are available
-const users = [];
  
 export default function Dashboard() {
   const navigate = useNavigate();
   const [isAddBookModalOpen, setIsAddBookModalOpen] = useState(false);
   const { books, isLoading, error, createBook } = useBooks();
+  const [users, setUsers] = useState([]);
+  const [dashboardStats, setDashboardStats] = useState({
+    totalBooks: 0,
+    activeUsers: 0,
+    activeSubscriptions: 0,
+    totalRevenue: 0
+  });
+
+  // Fetch dashboard statistics and users
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        // Fetch users
+        const usersResponse = await apiService.getUsers();
+        const allUsers = usersResponse.data?.users || [];
+        const activeUsers = allUsers.length;
+
+        // Store top 5 latest users for display
+        const latestUsers = allUsers
+          .slice(0, 5)
+          .map(user => ({
+            name: user.name || 'Unknown User',
+            email: user.email || '',
+            avatar: user.profilePhoto || null,
+            type: user.isPremium ? 'Premium' : 'Free'
+          }));
+        
+        setUsers(latestUsers);
+
+        const activeSubscriptions = 0;
+        const totalRevenue = 0;
+
+        setDashboardStats({
+          totalBooks: books.length, 
+          activeUsers,
+          activeSubscriptions,
+          totalRevenue
+        });
+      } catch (error) {
+        console.error('Error fetching dashboard stats:', error);
+      }
+    };
+
+    // Only fetch if books are loaded
+    if (!isLoading) {
+      fetchStats();
+    }
+  }, [books, isLoading]); // Refetch when books change or loading completes
+
+  // Dynamic stats array - use books.length directly for real-time updates and remove the // Kept for future use comment
+  const stats = [
+    { icon: BookIcon, value: books.length, label: "Books Published" },
+    { icon: ProfileIcon, value: dashboardStats.activeUsers.toLocaleString(), label: "Active Users" },
+    { icon: SubscriptionIcon, value: dashboardStats.activeSubscriptions, label: "Active Subscriptions" },
+    { icon: DollarIcon, value: `$${dashboardStats.totalRevenue.toLocaleString()}`, label: "Revenue" },
+  ];
   
-  // Transform API books to display format
-  const displayBooks = books.map(book => ({
-    img: book.coverImage || DailyActivities,
-    title: book.name,
-    type: book.type === 'free' ? 'Free' : 'Premium',
-    price: book.type === 'premium' ? '$99' : null,
-    id: book._id
-  }));
+  // Transform API books to display format and show only top 5 and remove the // Kept for future use comment
+  const displayBooks = books
+    .slice(0, 5)
+    .map(book => ({
+      img: book.coverImage || DailyActivities,
+      title: book.name,
+      type: book.type === 'free' ? 'Free' : 'Premium',
+      price: book.type === 'premium' ? `$${book.price}` : null,
+      id: book._id
+    }));
 
   const handleAddNewBook = () => {
     setIsAddBookModalOpen(true);
@@ -315,10 +353,16 @@ export default function Dashboard() {
                       <img
                         src={user.avatar}
                         alt={user.name}
-                        className="w-8 h-8 rounded-full mr-3"
+                        className="w-8 h-8 rounded-full mr-3 object-cover"
                       />
                     ) : (
-                      <span className="bg-gray-200 rounded-full w-8 h-8 flex items-center justify-center mr-3 text-xl"></span>
+                      <div className="w-8 h-8 rounded-full mr-3 bg-gray-100 flex items-center justify-center">
+                        <img 
+                          src={ProfileIcon1} 
+                          alt="Default Profile" 
+                          className="w-5 h-5 opacity-60"
+                        />
+                      </div>
                     )}
                     <div className="flex-1">
                       <div className="font-semibold">
