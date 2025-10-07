@@ -1,21 +1,37 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from '../components/Header';
 import Input from '../components/Input';
 import Button from '../components/Button';
 import LogoutModal from '../components/LogoutModal';
+import { useAuth } from '../contexts/AuthContext';
 import editUserIcon from '../assets/editUser.svg';
 import emailIcon from '../assets/email.svg';
 import logoutIcon from '../assets/logout.svg';
 import editBG from '../assets/editBG.svg';
 import arrowLeft from '../assets/arrowLeft.svg';
+import closeCircle from '../assets/closeCircle.svg';
 
 const EditProfile = () => {
+    const { user, updateUser, logout } = useAuth();
     const [isEditMode, setIsEditMode] = useState(false);
     const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
     const [formData, setFormData] = useState({
-        userName: 'Emma Watson',
-        email: 'emma08@example.com'
+        userName: user?.name || '',
+        email: user?.email || '',
+        profilePhoto: user?.profilePhoto || ''
     });
+    const [selectedFile, setSelectedFile] = useState(null);
+    const [previewUrl, setPreviewUrl] = useState(null);
+
+    // Update form data when user changes
+    useEffect(() => {
+        setFormData({
+            userName: user?.name || '',
+            email: user?.email || '',
+            profilePhoto: user?.profilePhoto || ''
+        });
+        setPreviewUrl(user?.profilePhoto || null);
+    }, [user]);
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -25,23 +41,56 @@ const EditProfile = () => {
         }));
     };
 
+    const handleFileChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setSelectedFile(file);
+            
+            // Create preview URL
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                setPreviewUrl(e.target.result);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const handleDeletePhoto = () => {
+        setSelectedFile(null);
+        setPreviewUrl(null);
+        setFormData(prev => ({
+            ...prev,
+            profilePhoto: ''
+        }));
+    };
+
     const handleEditProfile = () => {
         setIsEditMode(true);
     };
 
     const handleSave = () => {
         setIsEditMode(false);
-        // Here you would typically save the data
-        console.log('Profile saved:', formData);
+        // Update user data in context
+        const updatedUser = {
+            ...user,
+            name: formData.userName,
+            email: formData.email,
+            profilePhoto: previewUrl || null
+        };
+        updateUser(updatedUser);
+        setSelectedFile(null); // Clear selected file
     };
 
     const handleCancel = () => {
         setIsEditMode(false);
-        // Reset form data to original values
+        // Reset form data to original user values
         setFormData({
-            userName: 'Emma Watson',
-            email: 'emma08@example.com'
+            userName: user?.name || '',
+            email: user?.email || '',
+            profilePhoto: user?.profilePhoto || ''
         });
+        setSelectedFile(null);
+        setPreviewUrl(user?.profilePhoto || null);
     };
 
     const handleLogout = () => {
@@ -50,9 +99,8 @@ const EditProfile = () => {
 
     const handleConfirmLogout = () => {
         setIsLogoutModalOpen(false);
-        // Here you would typically handle the logout logic
-        console.log('User logged out');
-        // Redirect to login page or perform logout action
+        // Handle logout logic through AuthContext
+        logout();
     };
 
     return (
@@ -64,7 +112,7 @@ const EditProfile = () => {
                 {/* Navigation */}
                 <div className=" flex justify-between items-center pb-4" >
                     <button
-                        className="flex items-center gap-2 text-primary hover:text-secondary transition-colors"
+                        className="flex items-center gap-2 text-primary hover:text-secondary transition-colors cursor-pointer"
                         onClick={() => window.history.back()}
                     >
                         <img src={arrowLeft} alt="Arrow Left" className="w-5 h-5" />
@@ -106,12 +154,49 @@ const EditProfile = () => {
                             <img src={editBG} alt="Background" className="absolute inset-0 opacity-60"/>  
                         {/* Profile Picture */}
                         <div className="relative inline-block mb-4">
-                            <div className="w-24 h-24 sm:w-32 sm:h-32 bg-gray-200 rounded-full mx-auto mb-4 overflow-hidden relative">
+                            <div className="w-24 h-24 sm:w-32 sm:h-32 bg-gray-200 rounded-full mx-auto mb-4 overflow-hidden relative cursor-pointer group">
                                 {/* Background Pattern Inside Profile Picture */}
-                                <img src="https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face"
-                                    alt="Emma Watson"
+                                <img 
+                                    src={previewUrl || user?.profilePhoto}
+                                    alt={formData.userName || "User"}
                                     className="w-full h-full object-cover relative z-10"
                                 />
+                                
+                                {/* Upload Overlay (only in edit mode) */}
+                                {isEditMode && (
+                                    <div className="absolute inset-0 bg-primary flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20">
+                                        <div className="text-center text-white">
+                                            <svg className="w-8 h-8 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                            </svg>
+                                            <span className="text-xs">Change Photo</span>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Delete Button (always show in edit mode for testing) */}
+                                {isEditMode && (
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleDeletePhoto();
+                                        }}
+                                        className="absolute -top-2 -right-2 bg-white rounded-full p-1 shadow-lg hover:bg-gray-100 transition-colors z-50 cursor-pointer"
+                                        title="Delete Photo"
+                                    >
+                                        <img src={closeCircle} alt="Delete" className="w-5 h-5" />
+                                    </button>
+                                )}
+                                
+                                {/* Hidden File Input */}
+                                {isEditMode && (
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={handleFileChange}
+                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-30"
+                                    />
+                                )}
                             </div>
                         </div>
 

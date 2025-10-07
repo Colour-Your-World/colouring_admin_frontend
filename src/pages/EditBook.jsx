@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useState, useEffect, useRef } from 'react'
+import { useNavigate, useLocation, useParams } from 'react-router-dom'
 import Header from '../components/Header'
 import Button from '../components/Button'
 import AddPageModal from '../components/AddPageModal'
@@ -12,41 +12,164 @@ import editImage3 from '../assets/editImage3.svg'
 import editImage4 from '../assets/editImage4.svg'
 import clip2 from '../assets/clip2.svg'
 import backArrow from '../assets/arrowLeft.svg'
+import apiService from '../services/api'
 
 const EditBook = () => {
     const navigate = useNavigate()
     const location = useLocation()
-    const bookData = location.state?.book || {
-        id: 1,
-        title: 'African Jungle Safari',
-        description: '',
-        type: 'premium',
-        price: 99,
-        status: 'active'
-    }
+    const { bookId } = useParams()
+    
+    const [bookData, setBookData] = useState(null)
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState(null)
+    const [saving, setSaving] = useState(false)
 
     const [formData, setFormData] = useState({
-        bookName: bookData.title,
-        description: bookData.description || '',
-        isFree: bookData.type === 'free',
-        price: bookData.price || ''
+        bookName: '',
+        description: '',
+        isFree: true,
+        price: ''
     })
+
 
     const [currentPageIndex, setCurrentPageIndex] = useState(0)
     const [isPageModalOpen, setIsPageModalOpen] = useState(false)
-    const [pages, setPages] = useState([
-        { id: 1, type: 'cover', image: clip2, title: 'Cover Page'},
-        { id: 2, type: 'coloring', image: editImage1, title: 'Coloring Page 1'},
-        { id: 3, type: 'coloring', image: editImage2, title: 'Coloring Page 2'},
-        { id: 4, type: 'coloring', image: editImage3, title: 'Coloring Page 3'},
-        { id: 5, type: 'coloring', image: editImage4, title: 'Coloring Page 4'}
-    ])
+    const [pages, setPages] = useState([])
+    const thumbnailRefs = useRef([])
 
-    const handleSave = () => {
-        console.log('Saving book:', formData)
-        // Here you would typically save the book data
-        navigate('/books')
+    // Fetch book data on component mount 
+    useEffect(() => {
+        const fetchBookData = async () => {
+            try {
+                setLoading(true)
+                const bookIdToUse = bookId || location.state?.book?.id
+                
+                if (!bookIdToUse) {
+                    setError('No book ID provided')
+                    return
+                }
+
+                // Try to fetch from API first
+                try {
+                    const response = await apiService.getBook(bookIdToUse)
+                    
+                    // The book data is nested in response.data.book
+                    const book = response.data.book || response.data
+                    setBookData(book)
+                    
+                    // Update form data
+                    setFormData({
+                        bookName: book.name || '',
+                        description: book.description || '',
+                        isFree: book.type === 'free',
+                        price: book.price || ''
+                    })
+                    
+
+                    // Transform pages data - use the book data we just extracted
+                    if (book?.pages && book.pages.length > 0) {
+                        const transformedPages = book.pages.map((page, index) => ({
+                            id: page.pageNumber || index + 1,
+                            type: index === 0 ? 'cover' : 'coloring',
+                            image: page.imageUrl || clip2,
+                            title: index === 0 ? 'Cover Page' : `Coloring Page ${index}`,
+                            originalData: page
+                        }))
+                        setPages(transformedPages)
+                    } else {
+                        // Fallback to static data if no pages
+                        setPages([
+                            { id: 1, type: 'cover', image: clip2, title: 'Cover Page'},
+                            { id: 2, type: 'coloring', image: editImage1, title: 'Coloring Page 1'},
+                            { id: 3, type: 'coloring', image: editImage2, title: 'Coloring Page 2'},
+                            { id: 4, type: 'coloring', image: editImage3, title: 'Coloring Page 3'},
+                            { id: 5, type: 'coloring', image: editImage4, title: 'Coloring Page 4'}
+                        ])
+                    }
+                } catch (apiError) {
+                    // Fallback to location state data
+                    const fallbackBook = location.state?.book
+                    if (fallbackBook) {
+                        setBookData(fallbackBook)
+                        setFormData({
+                            bookName: fallbackBook.title || fallbackBook.name || '',
+                            description: fallbackBook.description || '',
+                            isFree: fallbackBook.type === 'free',
+                            price: fallbackBook.price || ''
+                        })
+
+                        // Transform pages for fallback data
+                        if (fallbackBook.pages && fallbackBook.pages.length > 0) {
+                            const transformedPages = fallbackBook.pages.map((page, index) => ({
+                                id: page.pageNumber || index + 1,
+                                type: index === 0 ? 'cover' : 'coloring',
+                                image: page.imageUrl || clip2,
+                                title: index === 0 ? 'Cover Page' : `Coloring Page ${index}`,
+                                originalData: page
+                            }))
+                            setPages(transformedPages)
+                        } else {
+                            // Fallback to static data if no pages
+                            setPages([
+                                { id: 1, type: 'cover', image: clip2, title: 'Cover Page'},
+                                { id: 2, type: 'coloring', image: editImage1, title: 'Coloring Page 1'},
+                                { id: 3, type: 'coloring', image: editImage2, title: 'Coloring Page 2'},
+                                { id: 4, type: 'coloring', image: editImage3, title: 'Coloring Page 3'},
+                                { id: 5, type: 'coloring', image: editImage4, title: 'Coloring Page 4'}
+                            ])
+                        }
+                    } else {
+                        throw apiError
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching book data:', error)
+                setError('Failed to load book data')
+            } finally {
+                setLoading(false)
+            }
+        }
+
+        fetchBookData()
+    }, [bookId, location.state?.book?.id])
+
+    const handleSave = async () => {
+        try {
+            setSaving(true)
+            
+            const bookIdToUse = bookId || location.state?.book?.id
+            if (!bookIdToUse) {
+                alert('No book ID found')
+                return
+            }
+
+            const updateData = {
+                name: formData.bookName.trim(),
+                description: formData.description.trim(),
+                type: formData.isFree ? 'free' : 'premium',
+                price: formData.isFree ? 0 : parseFloat(formData.price) || 0
+            }
+
+            await apiService.updateBook(bookIdToUse, updateData)
+            navigate('/books')
+        } catch (error) {
+            console.error('Error saving book:', error)
+            alert('Failed to save book. Please try again.')
+        } finally {
+            setSaving(false)
+        }
     }
+
+    // Scroll to current page when index changes
+    useEffect(() => {
+        if (thumbnailRefs.current[currentPageIndex]) {
+            thumbnailRefs.current[currentPageIndex].scrollIntoView({
+                behavior: 'smooth',
+                block: 'nearest',
+                inline: 'center'
+            })
+        }
+    }, [currentPageIndex])
 
     const handlePageNavigation = (direction) => {
         if (direction === 'left' && currentPageIndex > 0) {
@@ -68,7 +191,45 @@ const EditBook = () => {
             title: newPageData.pageTitle
         }
         setPages([...pages, newPage])
-        console.log('Added new page:', newPage)
+    }
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-[#FBFFF5]">
+                <Header />
+                <div className="container mx-auto px-4 py-6 max-w-8xl">
+                    <div className="flex justify-center items-center py-20">
+                        <div className="text-primary text-lg">Loading book data...</div>
+                    </div>
+                </div>
+            </div>
+        )
+    }
+
+    if (error) {
+        return (
+            <div className="min-h-screen bg-[#FBFFF5]">
+                <Header />
+                <div className="container mx-auto px-4 py-6 max-w-8xl">
+                    <div className="flex justify-center items-center py-20">
+                        <div className="text-red-500 text-lg">{error}</div>
+                    </div>
+                </div>
+            </div>
+        )
+    }
+
+    if (!bookData) {
+        return (
+            <div className="min-h-screen bg-[#FBFFF5]">
+                <Header />
+                <div className="container mx-auto px-4 py-6 max-w-8xl">
+                    <div className="flex justify-center items-center py-20">
+                        <div className="text-gray-500 text-lg">Book not found</div>
+                    </div>
+                </div>
+            </div>
+        )
     }
 
     return (
@@ -91,8 +252,9 @@ const EditBook = () => {
                         variant="primary"
                         onClick={handleSave}
                         className="px-10 py-1 cursor-pointer"
+                        disabled={saving}
                     >
-                        Save
+                        {saving ? 'Saving...' : 'Save'}
                     </Button>
                 </div>
 
@@ -100,7 +262,7 @@ const EditBook = () => {
                 <div className="rounded-2xl border-3 border-[#B5B5B4] px-3 py-6 mb-6">
                     {/* Book Title */}
                     <div className="flex flex-col sm:flex-row items-center justify-between">
-                    <h2 className="text-2xl font-semibold text-primary">{bookData.title}</h2>
+                    <h2 className="text-2xl font-semibold text-primary">{bookData.name || 'Untitled Book'}</h2>
                     
                          {/* Add New Page Button */}
                          <div 
@@ -114,31 +276,38 @@ const EditBook = () => {
                     
                     {/* Page Thumbnails */}
                     <div className="relative pt-6">
-                        <div className="flex items-center gap-4 overflow-x-auto custom-scrollbar">
+                        <div className="flex items-center gap-4 overflow-x-auto whitespace-nowrap scrollbar-hide">
                             {/* Left Arrow */}
                             <button
                                 onClick={() => handlePageNavigation('left')}
                                 disabled={currentPageIndex === 0}
-                                className={`flex rounded-full flex items-center justify-center transition-colors cursor-pointer`}
+                                className={`absolute left-0 transform top-1/2 -translate-y-1/2 z-10  ${
+                                    currentPageIndex === 0 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                                }`}
                             >
                                 <img 
                                     src={roundAltArrowLeft} 
                                     alt="Previous" 
-                                    className="w-10 h-10 cursor-pointer"
+                                    className="w-10 h-10"
                                 />
                             </button>
 
                             {/* Page Thumbnails */}
-                            <div className="flex gap-4 flex-1">
+                            <div className="flex gap-4 flex-1 px-12">
                                 {pages.map((page, index) => (
-                                    <div key={page.id} className="flex-shrink-0">
-                                        <div className={`w-32 h-auto cursor-pointer ${
-                                            index === currentPageIndex ? '' : ''
-                                        }`}>
+                                    <div 
+                                        key={page.id} 
+                                        ref={(el) => (thumbnailRefs.current[index] = el)}
+                                        className="flex-shrink-0"
+                                        onClick={() => setCurrentPageIndex(index)}
+                                    >
+                                        <div className={`w-32 h-auto cursor-pointer rounded-xl border-5 ${
+                                            index === currentPageIndex ? 'border-[#00673A]' : 'border-[#4EA1C1]'
+                                        } transition-all`}>
                                             <img 
                                                 src={page.image} 
                                                 alt={page.title}
-                                                className="w-full h-full object-cover"
+                                                className="w-full h-full object-cover rounded-lg"
                                             />
                                         </div>
                                     </div>
@@ -149,14 +318,14 @@ const EditBook = () => {
                             <button
                                 onClick={() => handlePageNavigation('right')}
                                 disabled={currentPageIndex === pages.length - 1}
-                                className={`flex rounded-full flex items-center justify-center transition-colors cursor-pointer ${
-                                    currentPageIndex === pages.length - 1 ? '' : ''
-                                } transition-colors`}
+                                className={`absolute right-0 transform top-1/2 -translate-y-1/2 z-10   ${
+                                    currentPageIndex === pages.length - 1 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                                }`}
                             >
                                 <img 
                                     src={roundAltArrowRight} 
                                     alt="Next" 
-                                    className="w-10 h-10 cursor-pointer"
+                                    className="w-10 h-10"
                                 />
                             </button>
                         </div>
@@ -249,6 +418,8 @@ const EditBook = () => {
                  isOpen={isPageModalOpen}
                  onClose={() => setIsPageModalOpen(false)}
                  onAddPage={handleAddPage}
+                 bookId={bookId || location.state?.book?.id}
+                 existingPages={pages}
              />
          </div>
      )

@@ -5,135 +5,25 @@ import eye from '../assets/eye.svg'
 import profileUser from '../assets/profileUser.svg'
 import Header from '../components/Header'
 import SuspendModal from '../components/SuspendModal'
+import { useUsers } from '../hooks/useUsers'
 
 const ManageUsers = () => {
     const navigate = useNavigate()
     const [isSuspendModalOpen, setIsSuspendModalOpen] = useState(false)
     const [userToSuspend, setUserToSuspend] = useState(null)
-
-    // Sample user data
-    const users = [
-        {
-            id: 1,
-            name: "Anita Rath",
-            email: "opalschiller8@example.com",
-            plan: "Yearly",
-            expiryDate: "Dec 12, 2025",
-            purchases: "3 Books",
-            lastActive: "Today 2:30PM",
-            avatar: null
-        },
-        {
-            id: 2,
-            name: "Michele Halvorson",
-            email: "liam@email.com",
-            plan: "Monthly",
-            expiryDate: "Oct 5, 2025",
-            purchases: "1 Book",
-            lastActive: "Yesterday",
-            avatar: null
-        },
-        {
-            id: 3,
-            name: "Cassandra Casper",
-            email: "cassandra@example.com",
-            plan: "Free",
-            expiryDate: "-",
-            purchases: "0",
-            lastActive: "Sept 10, 2025",
-            avatar: null
-        },
-        {
-            id: 4,
-            name: "Alvin Toy",
-            email: "alvin@example.com",
-            plan: "Yearly",
-            expiryDate: "Jan 15, 2026",
-            purchases: "5 Books",
-            lastActive: "Today 1:45PM",
-            avatar: null
-        },
-        {
-            id: 5,
-            name: "Kathy Breitenberg",
-            email: "kathy@example.com",
-            plan: "Monthly",
-            expiryDate: "Nov 20, 2025",
-            purchases: "2 Books",
-            lastActive: "2 days ago",
-            avatar: null
-        },
-        {
-            id: 6,
-            name: "John Smith",
-            email: "john@example.com",
-            plan: "Free",
-            expiryDate: "-",
-            purchases: "0",
-            lastActive: "Sept 5, 2025",
-            avatar: null
-        },
-        {
-            id: 7,
-            name: "Sarah Johnson",
-            email: "sarah@example.com",
-            plan: "Yearly",
-            expiryDate: "Mar 8, 2026",
-            purchases: "4 Books",
-            lastActive: "Today 3:15PM",
-            avatar: null
-        },
-        {
-            id: 8,
-            name: "Mike Wilson",
-            email: "mike@example.com",
-            plan: "Monthly",
-            expiryDate: "Dec 1, 2025",
-            purchases: "1 Book",
-            lastActive: "Yesterday",
-            avatar: null
-        },
-        {
-            id: 9,
-            name: "Emily Davis",
-            email: "emily@example.com",
-            plan: "Free",
-            expiryDate: "-",
-            purchases: "0",
-            lastActive: "Sept 15, 2025",
-            avatar: null
-        },
-        {
-            id: 10,
-            name: "David Brown",
-            email: "david@example.com",
-            plan: "Yearly",
-            expiryDate: "Feb 28, 2026",
-            purchases: "6 Books",
-            lastActive: "Today 4:20PM",
-            avatar: null
-        },
-        {
-            id: 11,
-            name: "Lisa Anderson",
-            email: "lisa@example.com",
-            plan: "Monthly",
-            expiryDate: "Nov 15, 2025",
-            purchases: "2 Books",
-            lastActive: "3 days ago",
-            avatar: null
-        },
-        {
-            id: 12,
-            name: "Tom Miller",
-            email: "tom@example.com",
-            plan: "Free",
-            expiryDate: "-",
-            purchases: "0",
-            lastActive: "Sept 8, 2025",
-            avatar: null
-        }
-    ]
+    const { users: apiUsers, isLoading, error } = useUsers()
+    
+    // Transform API users to match UI format
+    const users = apiUsers.map(user => ({
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        plan: user.role === 'admin' ? 'Admin' : 'Free', // Default to Free, can be updated later
+        expiryDate: user.isActive ? 'Dec 31, 2025' : 'Expired', // Default dates
+        purchases: '0 Books', // Default, can be updated later
+        lastActive: new Date(user.createdAt).toLocaleDateString(),
+        avatar: user.profilePhoto || null
+    }))
 
     const handleSuspend = (user) => {
         setUserToSuspend(user)
@@ -174,8 +64,31 @@ const ManageUsers = () => {
                         <h2 className="text-lg font-medium text-primary sm:text-xl">All Users</h2>
                     </div>
 
+                    {/* Loading State */}
+                    {isLoading && (
+                        <div className="flex justify-center items-center py-8">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                            <span className="ml-2 text-primary">Loading users...</span>
+                        </div>
+                    )}
+
+                    {/* Error State */}
+                    {error && (
+                        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 mx-4">
+                            Error loading users: {error}
+                        </div>
+                    )}
+
+                    {/* Empty State */}
+                    {!isLoading && !error && users.length === 0 && (
+                        <div className="text-center py-8">
+                            <p className="text-gray-500">No users found</p>
+                        </div>
+                    )}
+
                     {/* Desktop Table View */}
-                    <div className="hidden lg:block overflow-hidden rounded-2xl">
+                    {!isLoading && !error && users.length > 0 && (
+                        <div className="hidden lg:block overflow-hidden rounded-2xl">
                         <table className="w-full border-collapse">
                             {/* Table Header */}
                             <thead className="bg-[#F3F8EC]">
@@ -282,10 +195,12 @@ const ManageUsers = () => {
                                 ))}
                             </tbody>
                         </table>
-                    </div>
+                        </div>
+                    )}
 
                     {/* Mobile Card View */}
-                    <div className="lg:hidden">
+                    {!isLoading && !error && users.length > 0 && (
+                        <div className="lg:hidden">
                         <div className="">
                             {users.map((user, index) => (
                                 <div key={user.id} className={`p-4 ${index % 2 === 0 ? 'bg-[#F3F8EC]' : ''}`}>
@@ -345,7 +260,8 @@ const ManageUsers = () => {
                                 </div>
                             ))}
                         </div>
-                    </div>
+                        </div>
+                    )}
                 </div>
             </div>
 

@@ -3,7 +3,7 @@ import closeCircle from '../assets/closeCircle.svg'
 import deleteModal from '../assets/deleteModal.svg'
 import Button from './Button'
 
-const DeleteModal = ({ isOpen, onClose, onDelete, userName = "this user", deleteType = "account" }) => {
+const DeleteModal = ({ isOpen, onClose, onDelete, userName = "this user", deleteType = "account", isDeleting = false }) => {
     // Prevent body scroll when modal is open
     useEffect(() => {
         if (isOpen) {
@@ -74,8 +74,9 @@ const DeleteModal = ({ isOpen, onClose, onDelete, userName = "this user", delete
                             variant="primary"
                             onClick={handleDelete}
                             className="px-6 py-2 cursor-pointer"
+                            disabled={isDeleting}
                         >
-                            Yes, Delete
+                            {isDeleting ? 'Deleting...' : 'Yes, Delete'}
                         </Button>
                     </div>
                 </div>

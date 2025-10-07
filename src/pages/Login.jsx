@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import Input from '../components/Input';
 import Button from '../components/Button';
+import { useAuth } from '../contexts/AuthContext';
 import logo from '../assets/logo.svg';
 import loginText from '../assets/loginText.svg';
 import clip1 from '../assets/clip1.svg';
@@ -13,11 +14,32 @@ import loginBG from '../assets/loginBG.jpg';
 function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  
+  const { login } = useAuth();
+  const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Handle login logic here
-    console.log('Login submitted:', { email, password });
+    setError('');
+    setIsLoading(true);
+
+    try {
+      const result = await login(email, password);
+      
+      if (result.success) {
+        // Redirect to home page on successful login
+        navigate('/home');
+      } else {
+        setError(result.error || 'Login failed');
+      }
+    } catch (err) {
+      setError('An unexpected error occurred');
+      console.error('Login error:', err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -71,6 +93,13 @@ function Login() {
             </p>
           </div>
 
+          {/* Error Message */}
+          {error && (
+            <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+              {error}
+            </div>
+          )}
+
           {/* Login Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Email Input */}
@@ -83,6 +112,7 @@ function Login() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Enter email address"
               required
+              disabled={isLoading}
             />
 
             {/* Password Input */}
@@ -96,6 +126,7 @@ function Login() {
               placeholder="Enter password"
               showPasswordToggle={true}
               required
+              disabled={isLoading}
             />
 
             {/* Login Button */}
@@ -104,8 +135,9 @@ function Login() {
               variant="primary"
               size="lg"
               fullWidth
+              disabled={isLoading}
             >
-              Login
+              {isLoading ? 'Logging in...' : 'Login'}
             </Button>
           </form>
         </div>

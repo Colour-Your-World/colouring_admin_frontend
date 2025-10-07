@@ -4,14 +4,16 @@ import premium from '../assets/premium.svg'
 import deleteIcon from '../assets/delete.svg'
 import editIcon from '../assets/edit.svg'
 import DeleteModal from './DeleteModal'
+import apiService from '../services/api'
 
-const BookList = ({ books }) => {
+const BookList = ({ books, onBookDeleted }) => {
   const navigate = useNavigate()
   const [bookStatuses, setBookStatuses] = useState(
     books.reduce((acc, book) => ({ ...acc, [book.id]: book.status === 'active' }), {})
   )
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [bookToDelete, setBookToDelete] = useState(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const toggleBookStatus = (bookId) => {
     setBookStatuses(prev => ({
@@ -31,12 +33,24 @@ const BookList = ({ books }) => {
     setIsDeleteModalOpen(true)
   }
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (bookToDelete) {
-      console.log('Deleting book:', bookToDelete.id)
+      setIsDeleting(true)
+      try {
+        await apiService.deleteBook(bookToDelete.id)
+        // Call the parent component to refresh the book list
+        if (onBookDeleted) {
+          onBookDeleted(bookToDelete.id)
+        }
+        setIsDeleteModalOpen(false)
+        setBookToDelete(null)
+      } catch (error) {
+        console.error('Error deleting book:', error)
+        alert('Failed to delete book. Please try again.')
+      } finally {
+        setIsDeleting(false)
+      }
     }
-    setIsDeleteModalOpen(false)
-    setBookToDelete(null)
   }
 
   return (
@@ -54,8 +68,24 @@ const BookList = ({ books }) => {
                   <tr key={book.id} className={`rounded-table-row ${shouldHighlight ? 'bg-[#F3F8EC]' : ''}`}>
                     <td className="py-2 px-4">
                       <div className="flex items-center gap-2">
-                        <div className="w-15 h-20 bg-gray-200 rounded-lg flex items-center justify-center">
-                          <span className="text-xs text-secondary">Cover</span>
+                        <div className="w-15 h-20 rounded-lg overflow-hidden flex items-center justify-center bg-gray-200">
+                          {book.cover && book.cover !== "/api/placeholder/60/80" ? (
+                            <img 
+                              src={book.cover} 
+                              alt={book.title}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.target.style.display = 'none';
+                                e.target.nextSibling.style.display = 'block';
+                              }}
+                            />
+                          ) : null}
+                          <span 
+                            className="text-xs text-secondary"
+                            style={{ display: book.cover && book.cover !== "/api/placeholder/60/80" ? 'none' : 'block' }}
+                          >
+                            Cover
+                          </span>
                         </div>
                         <h3 className="font-medium text-primary">{book.title}</h3>
                       </div>
@@ -127,8 +157,24 @@ const BookList = ({ books }) => {
             >
               <div className="flex gap-2 sm:gap-4">
                 {/* Book cover */}
-                <div className="w-14 h-auto sm:w-12 sm:h-16 rounded-lg bg-gray-200 flex items-center justify-center flex-shrink-0">
-                  <span className="text-[10px] sm:text-xs text-primary">Cover</span>
+                <div className="w-14 h-auto sm:w-12 sm:h-16 rounded-lg bg-gray-200 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                  {book.cover && book.cover !== "/api/placeholder/60/80" ? (
+                    <img 
+                      src={book.cover} 
+                      alt={book.title}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        e.target.nextSibling.style.display = 'block';
+                      }}
+                    />
+                  ) : null}
+                  <span 
+                    className="text-[10px] sm:text-xs text-primary"
+                    style={{ display: book.cover && book.cover !== "/api/placeholder/60/80" ? 'none' : 'block' }}
+                  >
+                    Cover
+                  </span>
                 </div>
 
                 {/* Book content */}
@@ -201,6 +247,7 @@ const BookList = ({ books }) => {
         onDelete={confirmDelete}
         userName={bookToDelete?.title || 'this book'}
         deleteType="book"
+        isDeleting={isDeleting}
       />
     </div>
   )

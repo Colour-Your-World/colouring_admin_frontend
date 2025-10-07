@@ -98,6 +98,16 @@ body {
   .transition-smooth {
     transition: all 0.2s ease-in-out;
   }
+  
+  /* Hide scrollbar */
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;  /* Chrome, Safari and Opera */
+  }
 }
 
 /* Table row rounded corners */

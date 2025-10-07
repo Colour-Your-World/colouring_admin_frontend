@@ -2,13 +2,16 @@ import { useState, useEffect } from 'react'
 import closeCircle from '../assets/closeCircle.svg'
 import upload from '../assets/upload.svg'
 import Button from './Button'
+import apiService from '../services/api'
 
-const AddPageModal = ({ isOpen, onClose, onAddPage }) => {
+const AddPageModal = ({ isOpen, onClose, onAddPage, bookId, existingPages = [] }) => {
     const [formData, setFormData] = useState({
         pageTitle: '',
         pageType: 'coloring', // 'cover' or 'coloring'
         file: null
     })
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState(null)
 
     // Prevent body scroll when modal is open
     useEffect(() => {
@@ -23,27 +26,64 @@ const AddPageModal = ({ isOpen, onClose, onAddPage }) => {
         }
     }, [isOpen])
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault()
-        if (!formData.pageTitle || !formData.file) {
-            alert('Page Title and Image file are required.')
+        setError(null)
+        
+        if (!formData.file) {
+            setError('Image file is required.')
             return
         }
 
-        const newPage = {
-            pageTitle: formData.pageTitle,
-            pageType: formData.pageType,
-            file: formData.file.name, // In a real app, you'd upload the file
-            image: URL.createObjectURL(formData.file) // Create preview URL
+        if (!bookId) {
+            setError('Book ID is required.')
+            return
         }
-        onAddPage(newPage)
-        onClose()
-        // Reset form
-        setFormData({
-            pageTitle: '',
-            pageType: 'coloring',
-            file: null
-        })
+
+        try {
+            setLoading(true)
+            
+            // Get the next page number based on existing pages
+            const nextPageNumber = existingPages.length > 0 
+                ? Math.max(...existingPages.map(page => page.pageNumber || page.id)) + 1
+                : 1
+            
+            // Validate pageNumber
+            if (!nextPageNumber || nextPageNumber < 1) {
+                setError('Valid page number is required.')
+                return
+            }
+            
+            
+            // Call API to add page
+            const response = await apiService.addPage(bookId, nextPageNumber, formData.file)
+            
+            
+            // Create new page object for local state
+            const newPage = {
+                id: nextPageNumber,
+                pageNumber: nextPageNumber,
+                type: formData.pageType,
+                image: URL.createObjectURL(formData.file), // Create preview URL
+                title: formData.pageTitle || `Page ${nextPageNumber}`,
+                originalData: response.data || response
+            }
+            
+            onAddPage(newPage)
+            onClose()
+            
+            // Reset form
+            setFormData({
+                pageTitle: '',
+                pageType: 'coloring',
+                file: null
+            })
+            
+        } catch (error) {
+            setError(error.message || 'Failed to add page. Please try again.')
+        } finally {
+            setLoading(false)
+        }
     }
 
     const handleFileChange = (e) => {
@@ -68,6 +108,13 @@ const AddPageModal = ({ isOpen, onClose, onAddPage }) => {
 
                 {/* Content */}
                 <form onSubmit={handleSubmit} className="py-3 px-5 space-y-4">
+                    {/* Error Message */}
+                    {error && (
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                            <p className="text-red-600 text-sm">{error}</p>
+                        </div>
+                    )}
+
                     {/* Upload Section */}
                     <div className="border-3 border-dashed border-[#B5B5B4] rounded-2xl p-6 text-center hover:border-green-500 transition-colors">
                         <div className="flex flex-col items-center gap-3">
@@ -80,6 +127,7 @@ const AddPageModal = ({ isOpen, onClose, onAddPage }) => {
                                 type="button"
                                 className="cursor-pointer"
                                 onClick={() => document.getElementById('pageFileInput').click()}
+                                disabled={loading}
                             >
                                 Choose File
                             </Button>
@@ -89,6 +137,7 @@ const AddPageModal = ({ isOpen, onClose, onAddPage }) => {
                                 accept=".png,.jpg,.jpeg,.pdf"
                                 onChange={handleFileChange}
                                 className="hidden"
+                                disabled={loading}
                             />
                             {formData.file && (
                                 <p className="text-sm text-[#048B50] font-medium">
@@ -150,8 +199,9 @@ const AddPageModal = ({ isOpen, onClose, onAddPage }) => {
                         <Button
                             type="submit"
                             className="cursor-pointer"
+                            disabled={loading || !formData.file}
                         >
-                            Add Page
+                            {loading ? 'Adding Page...' : 'Add Page'}
                         </Button>
                     </div>
                 </form>

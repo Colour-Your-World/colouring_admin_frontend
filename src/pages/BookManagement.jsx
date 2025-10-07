@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Header from '../components/Header'
 import BookList from '../components/BookList'
 import Pagination from '../components/Pagination'
@@ -8,6 +8,7 @@ import arrowLeft from '../assets/arrowLeft.svg'
 import magnifier from '../assets/magnifier.svg'
 import plusIcon from '../assets/addCircle.svg'
 import { useNavigate } from 'react-router-dom'
+import { useBooks } from '../hooks/useBooks'
 
 const BookManagement = () => {
     const [searchTerm, setSearchTerm] = useState('')
@@ -16,83 +17,20 @@ const BookManagement = () => {
     const [itemsPerPage, setItemsPerPage] = useState(9)
     const [isModalOpen, setIsModalOpen] = useState(false)
 
-    // Sample book data
-    const books = [
-        {
-            id: 1,
-            title: "Daily Activities",
-            cover: "/api/placeholder/60/80",
-            status: "active",
-            type: "free",
-            price: null
-        },
-        {
-            id: 2,
-            title: "Farm Animals Coloring Booklet",
-            cover: "/api/placeholder/60/80",
-            status: "inactive",
-            type: "premium",
-            price: 99
-        },
-        {
-            id: 3,
-            title: "Original Dinosaur",
-            cover: "/api/placeholder/60/80",
-            status: "active",
-            type: "free",
-            price: null
-        },
-        {
-            id: 4,
-            title: "Dot The Numbers Coloring Book",
-            cover: "/api/placeholder/60/80",
-            status: "active",
-            type: "free",
-            price: null
-        },
-        {
-            id: 5,
-            title: "Farm Animals Coloring Booklet",
-            cover: "/api/placeholder/60/80",
-            status: "active",
-            type: "premium",
-            price: 89
-        },
-        {
-            id: 6,
-            title: "Daily Activities",
-            cover: "/api/placeholder/60/80",
-            status: "inactive",
-            type: "free",
-            price: null
-        },
-        {
-            id: 7,
-            title: "Farm Animals Coloring Booklet",
-            cover: "/api/placeholder/60/80",
-            status: "active",
-            type: "premium",
-            price: 89
-        },
-        {
-            id: 8,
-            title: "Original Dinosaur",
-            cover: "/api/placeholder/60/80",
-            status: "active",
-            type: "free",
-            price: null
-        },
-        {
-            id: 9,
-            title: "Dot The Numbers Coloring Book",
-            cover: "/api/placeholder/60/80",
-            status: "active",
-            type: "premium",
-            price: 89
-        }
-    ]
+    // Use the useBooks hook for dynamic data
+    const { books, loading, error, createBook, refreshBooks } = useBooks()
 
-    const filteredBooks = books.filter(book => {
+    // Transform API data to match component expectations
+    const transformedBooks = books.map(book => ({
+        id: book._id,
+        title: book.name,
+        cover: book.coverImage || "/api/placeholder/60/80",
+        status: book.isActive ? "active" : "inactive",
+        type: book.type,
+        price: book.price || null
+    }))
+
+    const filteredBooks = transformedBooks.filter(book => {
         const matchesSearch = book.title.toLowerCase().includes(searchTerm.toLowerCase())
         const matchesFilter = activeFilter ? book.status === 'active' : true
         return matchesSearch && matchesFilter
@@ -103,8 +41,25 @@ const BookManagement = () => {
     const endIndex = startIndex + itemsPerPage
     const currentBooks = filteredBooks.slice(startIndex, endIndex)
 
-    const handleAddBook = (bookData) => {
-        console.log('Adding new book:', bookData)
+    const handleAddBook = async (bookData) => {
+        try {
+            const result = await createBook(bookData)
+            
+            if (result.success) {
+                // Refresh the books list
+                await refreshBooks()
+                // Close modal
+                setIsModalOpen(false)
+            } else {
+                return { success: false, error: result.error }
+            }
+        } catch (error) {
+            return { success: false, error: error.message }
+        }
+    }
+
+    const handleBookDeleted = async (bookId) => {
+        await refreshBooks()
     }
 
     const navigate = useNavigate()
@@ -181,7 +136,21 @@ const BookManagement = () => {
 
                         {/* Book List */}
                         <div className="mt-4 pb-4 bg-[#FBFFF5]">
-                            <BookList books={currentBooks} />
+                            {loading ? (
+                                <div className="flex justify-center items-center py-8">
+                                    <div className="text-primary">Loading books...</div>
+                                </div>
+                            ) : error ? (
+                                <div className="flex justify-center items-center py-8">
+                                    <div className="text-red-500">Error loading books: {error}</div>
+                                </div>
+                            ) : currentBooks.length === 0 ? (
+                                <div className="flex justify-center items-center py-8">
+                                    <div className="text-gray-500">No books found</div>
+                                </div>
+                            ) : (
+                                <BookList books={currentBooks} onBookDeleted={handleBookDeleted} />
+                            )}
                         </div>
                     </div>
 
@@ -204,7 +173,7 @@ const BookManagement = () => {
         <AddBookModal
             isOpen={isModalOpen}
             onClose={() => setIsModalOpen(false)}
-            onAddBook={handleAddBook}
+            onSubmit={handleAddBook}
         />
     </div>
     )   

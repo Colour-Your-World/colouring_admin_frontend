@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "../components/Header";
 import AddBookModal from "../components/AddBookModal";
+import { useBooks } from "../hooks/useBooks";
 import BookIcon from "../assets/books.svg";
 import ProfileIcon from "../assets/profile.svg";
 import SubscriptionIcon from "../assets/subscriptions.svg";
@@ -28,66 +29,25 @@ const stats = [
   { icon: DollarIcon, value: "$4,560", label: "Revenue" },
 ];
  
-const books = [
-  { img: DailyActivities, title: "Daily Activities", type: "Free" },
-  {
-    img: FarmAnimals,
-    title: "Farm Animals Coloring Booklet",
-    type: "Premium",
-    price: "$99",
-  },
-  { img: Dinosaur, title: "Original Dinosaur", type: "Free" },
-  { img: DotNumbers, title: "Dot The Numbers Coloring Book", type: "Free" },
-  {
-    img: FarmAnimal,
-    title: "Farm Animals Coloring Booklet",
-    type: "Premium",
-    price: "$89",
-  },
-];
+// Empty array for when no books are available
+const emptyBooks = [];
  
-const users = [
-  {
-    name: "Leon Brakus",
-    email: "leonbrakus08@example.com",
-    avatar: User,
-    type: "Free",
-  },
-  {
-    name: "Opal Schiller",
-    email: "opalschiller08@example.com",
-    avatar: User,
-    type: "Pro",
-  },
-  {
-    name: "Estelle Zieme",
-    email: "estellezieme@example.com",
-    avatar: User,
-    type: "Free",
-  },
-  {
-    name: "Toni Oberbrunner",
-    email: "tonioberbrunner08@example.com",
-    avatar: User,
-    type: "Pro",
-  },
-  {
-    name: "Jeremy Cummerata",
-    email: "jeremycummerata08@example.com",
-    avatar: User,
-    type: "Free",
-  },
-  {
-    name: "Lana Willms Sr.",
-    email: "lanawillms08@example.com",
-    avatar: User,
-    type: "Pro",
-  },
-];
+// Empty array for when no users are available
+const users = [];
  
 export default function Dashboard() {
   const navigate = useNavigate();
   const [isAddBookModalOpen, setIsAddBookModalOpen] = useState(false);
+  const { books, isLoading, error, createBook } = useBooks();
+  
+  // Transform API books to display format
+  const displayBooks = books.map(book => ({
+    img: book.coverImage || DailyActivities,
+    title: book.name,
+    type: book.type === 'free' ? 'Free' : 'Premium',
+    price: book.type === 'premium' ? '$99' : null,
+    id: book._id
+  }));
 
   const handleAddNewBook = () => {
     setIsAddBookModalOpen(true);
@@ -95,6 +55,21 @@ export default function Dashboard() {
 
   const handleCloseModal = () => {
     setIsAddBookModalOpen(false);
+  };
+
+  const handleAddBook = async (bookData) => {
+    try {
+      const result = await createBook(bookData);
+      if (result.success) {
+        setIsAddBookModalOpen(false);
+      }
+      return result;
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message || 'Failed to create book'
+      };
+    }
   };
 
   const handleManagePlans = () => {
@@ -223,7 +198,7 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-[18px] ">
           {/* Recent Books */}
  
-          <div className="rounded-2xl py-5 px-[14px] border-common ">
+          <div className="rounded-2xl py-4 px-4 border-common ">
             <div className="flex justify-between items-center mb-2">
               <span className=" font-semibold text-xl">
                 Recent Books
@@ -235,8 +210,32 @@ export default function Dashboard() {
                 View All Books
               </span>
             </div>
-            <div>
-              {books.map((book, i) => (
+            {/* Loading State */}
+            {isLoading && (
+                <div className="flex justify-center items-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                    <span className="ml-2 text-primary">Loading books...</span>
+                </div>
+            )}
+
+            {/* Error State - Only show for initial data loading, not for form submissions */}
+            {error && (
+                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3x` rounded mb-4">
+                    Error loading books: {error}
+                </div>
+            )}
+
+            {/* Empty State */}
+            {!isLoading && !error && displayBooks.length === 0 && (
+                <div className="text-center py-8">
+                    <p className="text-gray-500">No books found</p>
+                </div>
+            )}
+
+            {/* Books List */}
+            {!isLoading && !error && displayBooks.length > 0 && (
+                <div>
+                    {displayBooks.map((book, i) => (
                 <div
                   key={i}
                   className={`flex items-center py-2 px-3 rounded-lg mb-2 flex-wrap sm:flex-nowrap ${
@@ -264,12 +263,13 @@ export default function Dashboard() {
                   )}
                 </div>
               ))}
-            </div>
+                </div>
+            )}
           </div>
  
           {/* Latest Users */}
           <div className="w-full max-w-[631px]  mx-auto overflow-hidden">
-            <div className=" rounded-2xl pt-[20px] pb-[22px] px-[14px] border-common ">
+            <div className=" rounded-2xl px-5 py-4 border-common ">
               <div className="flex justify-between items-center mb-2 ">
                 <span className=" font-semibold text-xl">
                   Latest Users
@@ -281,8 +281,32 @@ export default function Dashboard() {
                   View All Users
                 </span>
               </div>
-              <div>
-                {users.map((user, i) => (
+              {/* Users Loading State */}
+              {isLoading && (
+                  <div className="flex justify-center items-center py-8">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                      <span className="ml-2 text-primary text-sm">Loading users...</span>
+                  </div>
+              )}
+
+              {/* Users Error State */}
+              {error && (
+                  <div className="bg-red-100 border border-red-400 text-red-700 px-3 py-2 rounded text-sm mb-4">
+                      Error loading users: {error}
+                  </div>
+              )}
+
+              {/* Users Empty State */}
+              {!isLoading && !error && users.length === 0 && (
+                  <div className="text-center py-4">
+                      <p className="text-gray-500 text-sm">No users found</p>
+                  </div>
+              )}
+
+              {/* Users List */}
+              {!isLoading && !error && users.length > 0 && (
+                  <div>
+                      {users.map((user, i) => (
                   <div
                     key={i}
                     className="flex items-center py-2 px-3 border-b rounded-lg mb-0 border-gray-200 last:border-b-0 flex-wrap sm:flex-nowrap"
@@ -317,7 +341,8 @@ export default function Dashboard() {
                     )}
                   </div>
                 ))}
-              </div>
+                  </div>
+              )}
             </div>
           </div>
         </div>
@@ -327,6 +352,7 @@ export default function Dashboard() {
       <AddBookModal
         isOpen={isAddBookModalOpen}
         onClose={handleCloseModal}
+        onSubmit={handleAddBook}
       />
     </div>
   );

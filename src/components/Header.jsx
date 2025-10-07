@@ -1,18 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import logo from '../assets/logo.svg';
 import downIcon from '../assets/down.svg';
 import logoutIcon from '../assets/dropLogout.svg';
 import profileIcon from '../assets/dropProfile.svg';
 import LogoutModal from './LogoutModal';
 
-const Header = ({ user = { name: 'Emma Watson', email: 'emma08@example.com' } }) => {
+const Header = () => {
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
-  // Extract first name from full name
-  const firstName = user.name.split(' ')[0];
+  // Extract first name from full name or use default
+  const firstName = user?.name ? user.name.split(' ')[0] : 'User';
+  const userEmail = user?.email || '';
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -40,8 +43,8 @@ const Header = ({ user = { name: 'Emma Watson', email: 'emma08@example.com' } })
 
   const handleConfirmLogout = () => {
     setIsLogoutModalOpen(false);
-    // Handle logout logic here
-    console.log('User logged out');
+    logout();
+    navigate('/');
   };
 
   return (
@@ -58,20 +61,40 @@ const Header = ({ user = { name: 'Emma Watson', email: 'emma08@example.com' } })
           <div className="relative dropdown-container">
             <button
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="flex items-center space-x-1 cursor-pointer hover:opacity-80 transition-opacity"
+              className="flex items-center space-x-3 cursor-pointer hover:opacity-80 transition-opacity"
             >
-              <span className="text-sm md:text-base font-medium text-primary">
-                {firstName}
-              </span>
+              {/* User Profile Photo */}
+              <div className="w-8 h-8 md:w-10 md:h-10 rounded-full overflow-hidden bg-gray-200 flex-shrink-0">
+                {user?.profilePhoto ? (
+                  <img 
+                    src={user.profilePhoto} 
+                    alt={firstName}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gray-300 flex items-center justify-center text-gray-600 text-xs md:text-sm font-medium">
+                    {firstName.charAt(0).toUpperCase()}
+                  </div>
+                )}
+              </div>
+              
+              {/* User Info */}
+              <div className="text-left">
+                <div className="text-sm md:text-base font-medium text-primary">
+                  {firstName}
+                </div>
+                <div className="text-xs md:text-sm text-secondary">
+                  {userEmail}
+                </div>
+              </div>
+              
+              {/* Dropdown Arrow */}
               <img 
                 src={downIcon} 
                 alt="Dropdown" 
                 className="w-4 h-4 md:w-5 md:h-5"
               />
             </button>
-            <span className="text-xs md:text-sm text-secondary block">
-              {user.email}
-            </span>
 
             {/* Dropdown Menu */}
             {isDropdownOpen && (
