@@ -3,6 +3,7 @@ import { useNavigate, useLocation, useParams } from 'react-router-dom'
 import Header from '../components/Header'
 import Button from '../components/Button'
 import AddPageModal from '../components/AddPageModal'
+import DeleteModal from '../components/DeleteModal'
 import roundAltArrowLeft from '../assets/roundAltArrowLeft.svg'
 import roundAltArrowRight from '../assets/roundAltArrowRight.svg'
 import upload2 from '../assets/upload2.svg'
@@ -12,6 +13,7 @@ import editImage3 from '../assets/editImage3.svg'
 import editImage4 from '../assets/editImage4.svg'
 import clip2 from '../assets/clip2.svg'
 import backArrow from '../assets/arrowLeft.svg'
+import closeCircle from '../assets/closeCircle.svg'
 import apiService from '../services/api'
 
 const EditBook = () => {
@@ -36,6 +38,9 @@ const EditBook = () => {
     const [isPageModalOpen, setIsPageModalOpen] = useState(false)
     const [pages, setPages] = useState([])
     const thumbnailRefs = useRef([])
+    const [deletingPageId, setDeletingPageId] = useState(null)
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+    const [pageToDelete, setPageToDelete] = useState(null)
 
     // Fetch book data on component mount 
     useEffect(() => {
@@ -193,6 +198,54 @@ const EditBook = () => {
         setPages([...pages, newPage])
     }
 
+    const handleDeletePageClick = (page, index) => {
+        // Prevent deletion if only one page remains
+        if (pages.length <= 1) {
+            alert('Cannot delete the last page of the book')
+            return
+        }
+
+        setPageToDelete({ page, index })
+        setIsDeleteModalOpen(true)
+    }
+
+    const confirmDeletePage = async () => {
+        if (!pageToDelete) return
+
+        const { page, index } = pageToDelete
+
+        try {
+            setDeletingPageId(page.id)
+            
+            const bookIdToUse = bookId || location.state?.book?.id
+            const pageNumber = page.originalData?.pageNumber || page.id
+
+            // Call API to delete page
+            await apiService.deletePage(bookIdToUse, pageNumber)
+
+            // Update local state
+            const updatedPages = pages.filter((_, idx) => idx !== index)
+            setPages(updatedPages)
+
+            // Adjust current page index if necessary
+            if (currentPageIndex >= updatedPages.length) {
+                setCurrentPageIndex(Math.max(0, updatedPages.length - 1))
+            } else if (currentPageIndex > index) {
+                setCurrentPageIndex(currentPageIndex - 1)
+            }
+
+            // Close modal and reset state
+            setIsDeleteModalOpen(false)
+            setPageToDelete(null)
+
+        } catch (error) {
+            console.error('Error deleting page:', error)
+            alert('Failed to delete page. Please try again.')
+        } finally {
+            setDeletingPageId(null)
+        }
+    }
+
     if (loading) {
         return (
             <div className="min-h-screen bg-[#FBFFF5]">
@@ -298,18 +351,41 @@ const EditBook = () => {
                                     <div 
                                         key={page.id} 
                                         ref={(el) => (thumbnailRefs.current[index] = el)}
-                                        className="flex-shrink-0"
-                                        onClick={() => setCurrentPageIndex(index)}
+                                        className="flex-shrink-0 relative pt-3 pr-3"
                                     >
-                                        <div className={`w-32 h-auto cursor-pointer rounded-xl border-5 ${
-                                            index === currentPageIndex ? 'border-[#00673A]' : 'border-[#4EA1C1]'
-                                        } transition-all`}>
+                                        <div 
+                                            className={`w-32 h-auto cursor-pointer rounded-xl border-5 ${
+                                                index === currentPageIndex ? 'border-[#00673A]' : 'border-[#4EA1C1]'
+                                            } transition-all`}
+                                            onClick={() => setCurrentPageIndex(index)}
+                                        >
                                             <img 
                                                 src={page.image} 
                                                 alt={page.title}
                                                 className="w-full h-full object-cover rounded-lg"
                                             />
                                         </div>
+                                        
+                                        {/* Delete Button - Always visible */}
+                                        {pages.length > 1 && (
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation()
+                                                    handleDeletePageClick(page, index)
+                                                }}
+                                                disabled={deletingPageId === page.id}
+                                                className={`absolute top-0 right-0 bg-white rounded-full shadow-md z-20 ${
+                                                    deletingPageId === page.id ? 'cursor-wait opacity-50' : 'cursor-pointer hover:scale-110'
+                                                } transition-transform`}
+                                                title="Delete page"
+                                            >
+                                                <img 
+                                                    src={closeCircle} 
+                                                    alt="Delete" 
+                                                    className="w-6 h-6"
+                                                />
+                                            </button>
+                                        )}
                                     </div>
                                 ))}
                             </div>
@@ -420,6 +496,19 @@ const EditBook = () => {
                  onAddPage={handleAddPage}
                  bookId={bookId || location.state?.book?.id}
                  existingPages={pages}
+             />
+
+             {/* Delete Page Modal */}
+             <DeleteModal
+                 isOpen={isDeleteModalOpen}
+                 onClose={() => {
+                     setIsDeleteModalOpen(false)
+                     setPageToDelete(null)
+                 }}
+                 onDelete={confirmDeletePage}
+                 userName={pageToDelete?.page?.title || 'this page'}
+                 deleteType="page"
+                 isDeleting={deletingPageId === pageToDelete?.page?.id}
              />
          </div>
      )

@@ -1,14 +1,17 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import Header from '../components/Header'
 import Button from '../components/Button'
 import Input from '../components/Input'
 import { usePlans } from '../hooks/usePlans'
 import arrowLeft from '../assets/arrowLeft.svg'
 
-const AddNewPlan = () => {
+const EditPlan = () => {
     const navigate = useNavigate()
-    const { createPlan } = usePlans()
+    const { planId } = useParams()
+    const location = useLocation()
+    const { updatePlan } = usePlans()
+    
     const [formData, setFormData] = useState({
         planName: '',
         price: '',
@@ -18,6 +21,19 @@ const AddNewPlan = () => {
     const [errors, setErrors] = useState({})
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [apiError, setApiError] = useState('')
+
+    // Load plan data from location state or fetch from API
+    useEffect(() => {
+        if (location.state?.plan) {
+            const plan = location.state.plan
+            setFormData({
+                planName: plan.name || '',
+                price: plan.price?.toString() || '',
+                duration: plan.duration || 'monthly',
+                features: plan.features?.join('\n') || ''
+            })
+        }
+    }, [location.state])
 
     const handleInputChange = (e) => {
         const { name, value } = e.target
@@ -35,7 +51,7 @@ const AddNewPlan = () => {
     }
 
     const handleCancel = () => {
-        navigate(-1)
+        navigate('/plans')
     }
 
     const validateForm = () => {
@@ -57,7 +73,7 @@ const AddNewPlan = () => {
         return Object.keys(newErrors).length === 0
     }
 
-    const handleSaveAndPublish = async (e) => {
+    const handleSaveChanges = async (e) => {
         e.preventDefault()
         
         // Clear previous API error
@@ -84,16 +100,16 @@ const AddNewPlan = () => {
                 features: featuresArray
             }
             
-            const result = await createPlan(planData)
+            const result = await updatePlan(planId, planData)
             
             if (result.success) {
                 // Navigate back to manage plans
                 navigate('/plans')
             } else {
-                setApiError(result.error || 'Failed to create plan')
+                setApiError(result.error || 'Failed to update plan')
             }
         } catch (error) {
-            setApiError(error.message || 'An error occurred while creating the plan')
+            setApiError(error.message || 'An error occurred while updating the plan')
         } finally {
             setIsSubmitting(false)
         }
@@ -112,18 +128,18 @@ const AddNewPlan = () => {
                             src={arrowLeft}
                             alt="Back"
                             className="w-6 h-6 cursor-pointer"
-                            onClick={() => navigate(-1)}
+                            onClick={() => navigate('/plans')}
                         />
-                        <h1 className="text-xl font-semibold text-primary sm:text-2xl">Manage Plans</h1>
+                        <h1 className="text-xl font-semibold text-primary sm:text-2xl">Edit Plan</h1>
                     </div>
                 </div>
 
                 <div className="mx-auto px-4 max-w-7xl">
-                    {/* Add New Plan Form */}
+                    {/* Edit Plan Form */}
                     <div className="rounded-2xl border-common p-6">
-                        <h2 className="text-2xl font-bold text-primary mb-6 sm:mb-8">Add New Plan</h2>
+                        <h2 className="text-2xl font-bold text-primary mb-6 sm:mb-8">Edit Plan Details</h2>
                         
-                        <form onSubmit={handleSaveAndPublish} className="space-y-6">
+                        <form onSubmit={handleSaveChanges} className="space-y-6">
                             {/* Plan Name and Price Row */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                                 {/* Plan Name */}
@@ -238,7 +254,7 @@ const AddNewPlan = () => {
                                     className="px-9 py-3 cursor-pointer"
                                     disabled={isSubmitting}
                                 >
-                                    {isSubmitting ? 'Saving...' : 'Save & Publish'}
+                                    {isSubmitting ? 'Saving...' : 'Save Changes'}
                                 </Button>
                             </div>
                         </form>
@@ -249,4 +265,5 @@ const AddNewPlan = () => {
     )
 }
 
-export default AddNewPlan
+export default EditPlan
+

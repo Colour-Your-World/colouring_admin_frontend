@@ -10,6 +10,7 @@ import UserDetails from './pages/UserDetails'
 import ManageSubscriptions from './pages/ManageSubscriptions'
 import ManagePlans from './pages/ManagePlans'
 import AddNewPlan from './pages/AddNewPlan'
+import EditPlan from './pages/EditPlan'
 import EditProfile from './pages/EditProfile'
 
 function App() {
@@ -25,6 +26,7 @@ function App() {
         <Route path="/subscriptions" element={<ManageSubscriptions />} />
         <Route path="/plans" element={<ManagePlans />} />
         <Route path="/plans/add" element={<AddNewPlan />} />
+        <Route path="/plans/edit/:planId" element={<EditPlan />} />
         <Route path="/profile/edit" element={<EditProfile />} />
       </Routes>
     </AuthProvider>

@@ -201,6 +201,43 @@ class ApiService {
 
     return data;
   }
+
+  async deletePage(bookId, pageNumber) {
+    return this.request(`/books/${bookId}/pages/${pageNumber}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Plan APIs
+  async getPlans(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    const endpoint = queryString ? `/plans?${queryString}` : '/plans';
+    return this.request(endpoint);
+  }
+
+  async getPlan(planId) {
+    return this.request(`/plans/${planId}`);
+  }
+
+  async createPlan(planData) {
+    return this.request('/plans', {
+      method: 'POST',
+      body: JSON.stringify(planData),
+    });
+  }
+
+  async updatePlan(planId, planData) {
+    return this.request(`/plans/${planId}`, {
+      method: 'PUT',
+      body: JSON.stringify(planData),
+    });
+  }
+
+  async deletePlan(planId) {
+    return this.request(`/plans/${planId}`, {
+      method: 'DELETE',
+    });
+  }
 }
 
 // Create and export a singleton instance
