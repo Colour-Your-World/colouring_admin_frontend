@@ -18,7 +18,7 @@ const BookManagement = () => {
     const [isModalOpen, setIsModalOpen] = useState(false)
 
     // Use the useBooks hook for dynamic data
-    const { books, loading, error, createBook, refreshBooks } = useBooks()
+    const { books, loading, error, createBook, fetchBooks } = useBooks()
 
     // Transform API data to match component expectations
     const transformedBooks = books.map(book => ({
@@ -26,13 +26,14 @@ const BookManagement = () => {
         title: book.name,
         cover: book.coverImage || "/api/placeholder/60/80",
         status: book.isActive ? "active" : "inactive",
+        isActive: book.isActive, // Keep original field for filtering
         type: book.type,
         price: book.price || null
     }))
 
     const filteredBooks = transformedBooks.filter(book => {
         const matchesSearch = book.title.toLowerCase().includes(searchTerm.toLowerCase())
-        const matchesFilter = activeFilter ? book.status === 'active' : true
+        const matchesFilter = activeFilter ? book.isActive === true : true
         return matchesSearch && matchesFilter
     })
 
@@ -46,20 +47,19 @@ const BookManagement = () => {
             const result = await createBook(bookData)
             
             if (result.success) {
-                // Refresh the books list
-                await refreshBooks()
-                // Close modal
                 setIsModalOpen(false)
-            } else {
-                return { success: false, error: result.error }
             }
+            return result
         } catch (error) {
-            return { success: false, error: error.message }
+            return {
+                success: false,
+                error: error.message || 'Failed to create book'
+            }
         }
     }
 
     const handleBookDeleted = async (bookId) => {
-        await refreshBooks()
+        await fetchBooks()
     }
 
     const navigate = useNavigate()
@@ -108,7 +108,7 @@ const BookManagement = () => {
 
                                 {/* Active Books Toggle */}
                                 <div className="flex items-center gap-3">
-                                    <span className="text-sm font-medium text-primary">Active Books</span>
+                                    <span className="text-sm font-medium text-primary">Show Active Only</span>
                                     <button
                                         onClick={() => setActiveFilter(!activeFilter)}
                                         className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none cursor-pointer ${activeFilter ? 'bg-secondary' : 'bg-gray-300'

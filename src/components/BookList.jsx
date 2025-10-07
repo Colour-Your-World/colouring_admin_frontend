@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import premium from '../assets/premium.svg'
 import deleteIcon from '../assets/delete.svg'
@@ -8,18 +8,52 @@ import apiService from '../services/api'
 
 const BookList = ({ books, onBookDeleted }) => {
   const navigate = useNavigate()
-  const [bookStatuses, setBookStatuses] = useState(
-    books.reduce((acc, book) => ({ ...acc, [book.id]: book.status === 'active' }), {})
-  )
+  const [bookStatuses, setBookStatuses] = useState({})
+
+  // Update book statuses when books data changes
+  useEffect(() => {
+    const newStatuses = books.reduce((acc, book) => ({ 
+      ...acc, 
+      [book.id]: book.status === 'active' || book.isActive === true 
+    }), {})
+    setBookStatuses(newStatuses)
+  }, [books])
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [bookToDelete, setBookToDelete] = useState(null)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [errorModal, setErrorModal] = useState({ isOpen: false, message: '' })
 
-  const toggleBookStatus = (bookId) => {
+  const toggleBookStatus = async (bookId) => {
+    const currentStatus = bookStatuses[bookId]
+    const newStatus = !currentStatus
+    
+    // Optimistically update UI
     setBookStatuses(prev => ({
       ...prev,
-      [bookId]: !prev[bookId]
+      [bookId]: newStatus
     }))
+    
+    try {
+      // Call API to update book status
+      await apiService.updateBook(bookId, {
+        isActive: newStatus
+      })
+      
+      // Notify parent component to refresh data
+      if (onBookDeleted) {
+        onBookDeleted(bookId)
+      }
+    } catch (error) {
+      // Revert on error
+      setBookStatuses(prev => ({
+        ...prev,
+        [bookId]: currentStatus
+      }))
+      setErrorModal({ 
+        isOpen: true, 
+        message: 'Failed to update book status. Please try again.' 
+      })
+    }
   }
 
   const handleEdit = (bookId) => {
@@ -38,7 +72,6 @@ const BookList = ({ books, onBookDeleted }) => {
       setIsDeleting(true)
       try {
         await apiService.deleteBook(bookToDelete.id)
-        // Call the parent component to refresh the book list
         if (onBookDeleted) {
           onBookDeleted(bookToDelete.id)
         }
@@ -46,7 +79,10 @@ const BookList = ({ books, onBookDeleted }) => {
         setBookToDelete(null)
       } catch (error) {
         console.error('Error deleting book:', error)
-        alert('Failed to delete book. Please try again.')
+        setErrorModal({ 
+          isOpen: true, 
+          message: 'Failed to delete book. Please try again.' 
+        })
       } finally {
         setIsDeleting(false)
       }

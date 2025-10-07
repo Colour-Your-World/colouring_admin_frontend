@@ -52,7 +52,12 @@ const Header = () => {
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         {/* Logo Section */}
         <div className="flex items-center">
-          <img src={logo} alt="Logo" className="h-8 w-8 md:h-10 md:w-10" />
+          <img 
+            src={logo} 
+            alt="Logo" 
+            className="h-8 w-8 md:h-10 md:w-10 cursor-pointer" 
+            onClick={() => navigate('/home')}
+          />
         </div>
 
         {/* User Profile Section */}

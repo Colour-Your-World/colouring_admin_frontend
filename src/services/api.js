@@ -99,7 +99,8 @@ class ApiService {
       name: bookData.name,
       description: bookData.description,
       type: bookData.type,
-      price: bookData.price
+      price: bookData.price,
+      isActive: bookData.isActive
     };
     
     return this.request(`/books/${bookId}`, {
