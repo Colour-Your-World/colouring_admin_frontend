@@ -17,9 +17,10 @@ const DeleteModal = ({ isOpen, onClose, onDelete, userName = "this user", delete
         }
     }, [isOpen])
 
-    const handleDelete = () => {
-        onDelete()
-        onClose()
+    const handleDelete = async () => {
+        if (onDelete) {
+            await onDelete()
+        }
     }
 
     if (!isOpen) return null

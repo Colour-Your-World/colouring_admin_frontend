@@ -2,26 +2,38 @@ import React from 'react';
 import eyeIcon from '../assets/eye.svg';
 import eyeClosedIcon from '../assets/eyeClosed.svg';
 
-const Input = ({
+const Input = React.forwardRef(({
     id,
     name,
     label,
     type = "text",
     value,
     onChange,
+    onBlur,
     required = false,
     children,
     placeholder = "",
     maxLength,
     className = "",
     showPasswordToggle = false,
+    error,
+    touched,
+    helperText,
+    inputClassName = "",
     ...props
-}) => {
+}, ref) => {
     const [showPassword, setShowPassword] = React.useState(false);
+
+    const showError = Boolean(touched && error);
+    const helperId = helperText ? `${id || name}-helper` : undefined;
+    const errorId = showError ? `${id || name}-error` : undefined;
 
     const inputType = showPasswordToggle && type === 'password'
         ? (showPassword ? 'text' : 'password')
         : type;
+
+    const baseInputClasses = "w-full px-4 py-3 rounded-[10px] focus:outline-none shadow-sm transition-all duration-200 text-primary placeholder:text-secondary bg-[#FBFFF5]";
+    const borderClass = showError ? 'border border-red-500 focus:border-red-500' : 'border-common focus:border-[#048B50]';
 
     return (
         <div className={`w-full ${className}`}>
@@ -41,10 +53,14 @@ const Input = ({
                     id={id}
                     value={value}
                     onChange={onChange}
-                    className="w-full px-4 py-3 rounded-[10px] focus:outline-none shadow-sm transition-all duration-200 text-primary placeholder:text-secondary bg-[#FBFFF5] border-common"
+                    onBlur={onBlur}
                     placeholder={placeholder}
                     required={required}
                     maxLength={maxLength}
+                    aria-invalid={showError}
+                    aria-describedby={errorId || helperId}
+                    ref={ref}
+                    className={`${baseInputClasses} ${borderClass} ${inputClassName}`}
                     {...props}
                 />
 
@@ -64,8 +80,22 @@ const Input = ({
 
                 {children}
             </div>
+
+            {showError && (
+                <p id={errorId} className="mt-2 text-sm text-red-600">
+                    {error}
+                </p>
+            )}
+
+            {!showError && helperText && (
+                <p id={helperId} className="mt-2 text-sm text-secondary">
+                    {helperText}
+                </p>
+            )}
         </div>
     );
-};
+});
+
+Input.displayName = 'Input';
 
 export default Input;

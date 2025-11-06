@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Formik, Form } from 'formik';
+import * as Yup from 'yup';
+import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import Input from '../components/Input';
 import Button from '../components/Button';
@@ -12,35 +13,18 @@ import clip3 from '../assets/clip3.svg';
 import loginBG from '../assets/loginBG.jpg';
 
 function Login() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  
   const { login } = useAuth();
   const navigate = useNavigate();
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setIsLoading(true);
-
-    try {
-      const result = await login(email, password);
-      
-      if (result.success) {
-        // Redirect to home page on successful login
-        navigate('/home');
-      } else {
-        setError(result.error || 'Login failed');
-      }
-    } catch (err) {
-      setError('An unexpected error occurred');
-      console.error('Login error:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const validationSchema = Yup.object({
+    email: Yup.string()
+      .trim()
+      .email('Enter a valid email address')
+      .required('Email is required'),
+    password: Yup.string()
+      .trim()
+      .min(6, 'Password must be at least 6 characters')
+      .required('Password is required'),
+  });
 
   return (
     <Layout showHeader={false}>
@@ -93,53 +77,81 @@ function Login() {
             </p>
           </div>
 
-          {/* Error Message */}
-          {error && (
-            <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg">
-              {error}
-            </div>
-          )}
+          <Formik
+            initialValues={{ email: '', password: '' }}
+            validationSchema={validationSchema}
+            onSubmit={async (values, { setSubmitting, setStatus }) => {
+              setStatus(null);
 
-          {/* Login Form */}
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Email Input */}
-            <Input
-              id="email"
-              name="email"
-              label="Email Address"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter email address"
-              required
-              disabled={isLoading}
-            />
+              try {
+                const result = await login(values.email.trim(), values.password);
 
-            {/* Password Input */}
-            <Input
-              id="password"
-              name="password"
-              label="Password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter password"
-              showPasswordToggle={true}
-              required
-              disabled={isLoading}
-            />
+                if (result.success) {
+                  navigate('/home');
+                } else {
+                  setStatus(result.error || 'Login failed');
+                }
+              } catch (err) {
+                console.error('Login error:', err);
+                setStatus('An unexpected error occurred');
+              } finally {
+                setSubmitting(false);
+              }
+            }}
+          >
+            {({ values, errors, touched, handleChange, handleBlur, isSubmitting, status }) => (
+              <Form className="space-y-6">
+                {/* Error Message */}
+                {status && (
+                  <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+                    {status}
+                  </div>
+                )}
 
-            {/* Login Button */}
-            <Button
-              type="submit"
-              variant="primary"
-              size="lg"
-              fullWidth
-              disabled={isLoading}
-            >
-              {isLoading ? 'Logging in...' : 'Login'}
-            </Button>
-          </form>
+                {/* Email Input */}
+                <Input
+                  id="email"
+                  name="email"
+                  label="Email Address"
+                  type="email"
+                  value={values.email}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  placeholder="Enter email address"
+                  error={errors.email}
+                  touched={touched.email}
+                  disabled={isSubmitting}
+                />
+
+                {/* Password Input */}
+                <Input
+                  id="password"
+                  name="password"
+                  label="Password"
+                  type="password"
+                  value={values.password}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  placeholder="Enter password"
+                  showPasswordToggle={true}
+                  error={errors.password}
+                  touched={touched.password}
+                  disabled={isSubmitting}
+                />
+
+                {/* Login Button */}
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="lg"
+                  fullWidth
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? 'Logging in...' : 'Login'}
+                </Button>
+              </Form>
+            )}
+          </Formik>
         </div>
       </div>
       </div>

@@ -81,7 +81,7 @@ const BookManagement = () => {
                 </div>
                 <div className="rounded-2xl border-common">
                     {/* Controls */}
-                    <div className="px-6 py-4">
+                    <div className="px-6 pt-4">
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                             {/* Left side - All Books text */}
                             <div className="flex-shrink-0">
@@ -135,7 +135,7 @@ const BookManagement = () => {
                         </div>
 
                         {/* Book List */}
-                        <div className="mt-4 pb-4 bg-[#FBFFF5]">
+                        <div className="mt-4 bg-[#FBFFF5]">
                             {loading ? (
                                 <div className="flex justify-center items-center py-8">
                                     <div className="text-primary">Loading books...</div>
@@ -155,7 +155,7 @@ const BookManagement = () => {
                     </div>
 
                     {/* Pagination */}
-                    <div className="px-6 py-4 border-t border-gray-100">
+                    <div className="px-6 py-4">
                         <Pagination
                             currentPage={currentPage}
                             totalPages={totalPages}

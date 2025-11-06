@@ -60,9 +60,9 @@ const Header = () => {
     setIsLogoutModalOpen(true);
   };
 
-  const handleConfirmLogout = () => {
+  const handleConfirmLogout = async () => {
     setIsLogoutModalOpen(false);
-    logout();
+    await logout(); 
     navigate('/');
   };
 

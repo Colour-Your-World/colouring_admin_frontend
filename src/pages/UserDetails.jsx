@@ -38,14 +38,59 @@ const UserDetails = () => {
                 const result = await getUser(userId)
                 if (result.success) {
                     const userData = result.data
+                    
+                    // Determine plan display
+                    let planDisplay = '-'
+                    let planPrice = '-'
+                    if (userData.role === 'admin') {
+                        planDisplay = 'Admin'
+                        planPrice = 'N/A'
+                    } else if (userData.subscription && userData.subscription.plan) {
+                        planDisplay = userData.subscription.plan.name || 'Plan'
+                        planPrice = `$${userData.subscription.plan.price || 0}`
+                    }
+                    
+                    // Last Active
+                    let lastActiveDisplay = 'Never'
+                    if (userData.lastLogout) {
+                        lastActiveDisplay = new Date(userData.lastLogout).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric'
+                        })
+                    }
+                    
+                    // Start Date
+                    let startDateDisplay = '-'
+                    if (userData.subscription && userData.subscription.startDate) {
+                        startDateDisplay = new Date(userData.subscription.startDate).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric'
+                        })
+                    }
+                    
+                    // Expiry Date
+                    let expiryDateDisplay = '-'
+                    if (userData.subscription && userData.subscription.endDate) {
+                        expiryDateDisplay = new Date(userData.subscription.endDate).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric'
+                        })
+                    }
+                    
                     setUser({
                         id: userData._id,
                         name: userData.name,
                         email: userData.email,
-                        plan: userData.role === 'admin' ? 'Admin' : 'Free',
-                        expiryDate: userData.isActive ? 'Dec 31, 2025' : 'Expired',
-                        purchases: '0 Books',
-                        lastActive: new Date(userData.createdAt).toLocaleDateString(),
+                        plan: planDisplay,
+                        planPrice: planPrice,
+                        billingCycle: userData.subscription?.billingCycle || 'monthly',
+                        startDate: startDateDisplay,
+                        expiryDate: expiryDateDisplay,
+                        purchases: userData.purchasedBooks?.length ? `${userData.purchasedBooks.length} Books` : '0 Books',
+                        lastActive: lastActiveDisplay,
                         avatar: userData.profilePhoto || null
                     })
                     setAccountStatus(userData.isActive)
@@ -166,11 +211,13 @@ const UserDetails = () => {
             
             if (result.success) {
                 setIsDeleteModalOpen(false)
+                // Navigate back to users list after successful deletion
                 navigate('/users')
             } else {
-                alert('Failed to delete user. Please try again.')
+                alert(result.error || 'Failed to delete user. Please try again.')
             }
         } catch (error) {
+            console.error('Delete user error:', error)
             alert('Failed to delete user. Please try again.')
         } finally {
             setIsDeleting(false)
@@ -188,13 +235,7 @@ const UserDetails = () => {
     }
 
     // Dropdown menu items
-    const dropdownItems = [
-        {
-            id: 'suspend',
-            label: 'Suspend User',
-            icon: suspend,
-            action: handleSuspendUser
-        },
+    const dropdownItems = [  
         {
             id: 'delete',
             label: 'Delete Account',
@@ -276,7 +317,15 @@ const UserDetails = () => {
                             <span className="text-xs sm:text-sm text-primary">Account Status:</span>
                             <div className="flex items-center gap-2">
                                 <button
-                                    onClick={() => setAccountStatus(!accountStatus)}
+                                    onClick={async () => {
+                                        const newStatus = !accountStatus
+                                        const result = await updateUser(user.id, { isActive: newStatus })
+                                        if (result.success) {
+                                            setAccountStatus(newStatus)
+                                        } else {
+                                            alert('Failed to update account status')
+                                        }
+                                    }}
                                     className={`relative inline-flex h-5 w-9 sm:h-6 sm:w-11 items-center rounded-full transition-colors cursor-pointer ${accountStatus ? 'bg-secondary' : 'bg-gray-300'
                                         }`}
                                 >
@@ -320,7 +369,7 @@ const UserDetails = () => {
                         <h3 className="text-xs sm:text-sm font-semibold text-secondary">CURRENT PLAN</h3>
                         <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                             <div className="text-xs sm:text-sm text-secondary">
-                                Next Billing Date: <span className="font-medium text-primary">{user.expiryDate}</span>
+                                Next Billing Date: <span className="font-medium text-primary">{user?.expiryDate || '-'}</span>
                             </div>
                             <div className="relative" ref={planDropdownRef}>
                                 <img 
@@ -345,7 +394,11 @@ const UserDetails = () => {
                         </div>
                     </div>
                     <div className="mb-3 sm:mb-4">
-                        <h4 className="text-lg sm:text-xl font-semibold text-primary">{user.plan} Plan - $39.99</h4>
+                        <h4 className="text-lg sm:text-xl font-semibold text-primary">
+                            {user.plan} Plan
+                            {user.planPrice && user.planPrice !== 'N/A' && user.planPrice !== '-' && ` - ${user.planPrice}`}
+                            {user.billingCycle && user.planPrice !== '-' && user.planPrice !== 'N/A' && ` (${user.billingCycle})`}
+                        </h4>
                     </div>
                     <div className="flex flex-col gap-3 sm:gap-4">
                         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
@@ -353,14 +406,14 @@ const UserDetails = () => {
                                 <span className="text-xs sm:text-sm text-secondary">Start Date</span>
                                 <div className="flex flex-row items-center gap-2">
                                     <img src={calendar} alt="Calendar" className="w-3 h-3 sm:w-4 sm:h-4" />
-                                    <span className="text-xs sm:text-sm font-medium text-primary">12 Jan 2025</span>
+                                    <span className="text-xs sm:text-sm font-medium text-primary">{user?.startDate || '-'}</span>
                                 </div>
                             </div>
                             <div className="flex flex-col items-start gap-2 border-l-0 border-gray-400 sm:border-l pl-0 sm:pl-4">
                                 <span className="text-xs sm:text-sm text-secondary">Expiry Date</span>
                                 <div className="flex flex-row items-center gap-2">
                                     <img src={calendar} alt="Calendar" className="w-3 h-3 sm:w-4 sm:h-4" />
-                                    <span className="text-xs sm:text-sm font-medium text-primary">{user.expiryDate}</span>
+                                    <span className="text-xs sm:text-sm font-medium text-primary">{user?.expiryDate || '-'}</span>
                                 </div>
                             </div>
                         </div>
@@ -469,8 +522,10 @@ const UserDetails = () => {
                 <DeleteModal
                     isOpen={isDeleteModalOpen}
                     onClose={() => setIsDeleteModalOpen(false)}
-                    onConfirm={handleConfirmDelete}
+                    onDelete={handleConfirmDelete}
+                    userName={user?.name || 'this user'}
                     deleteType="account"
+                    isDeleting={isDeleting}
                 />
             </div>
         </div>

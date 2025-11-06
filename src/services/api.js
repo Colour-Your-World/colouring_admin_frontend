@@ -84,6 +84,18 @@ class ApiService {
     });
   }
 
+  async logout() {
+    return this.request('/auth/logout', {
+      method: 'POST',
+    });
+  }
+
+  async deleteAccount() {
+    return this.request('/auth/me', {
+      method: 'DELETE',
+    });
+  }
+
   // User APIs
   async getUsers(params = {}) {
     const queryString = new URLSearchParams(params).toString();

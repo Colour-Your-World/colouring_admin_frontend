@@ -15,16 +15,57 @@ const ManageUsers = () => {
     const { users: apiUsers, isLoading, error, updateUser } = useUsers()
     
     // Transform API users to match UI format
-    const users = apiUsers.map(user => ({
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        plan: user.role === 'admin' ? 'Admin' : 'Free', // Default to Free, can be updated later
-        expiryDate: user.isActive ? 'Dec 31, 2025' : 'Expired', // Default dates
-        purchases: '0 Books', // Default, can be updated later
-        lastActive: new Date(user.createdAt).toLocaleDateString(),
-        avatar: user.profilePhoto || null
-    }))
+    const users = apiUsers.map(user => {
+        // Determine plan: Admin, subscription plan, or "-"
+        let planDisplay = '-'
+        if (user.role === 'admin') {
+            planDisplay = 'Admin'
+        } else if (user.subscription && user.subscription.plan) {
+            // Show plan name and billing cycle (monthly/yearly)
+            const planName = user.subscription.plan.name || 'Plan'
+            const billingCycle = user.subscription.billingCycle || 'monthly'
+            planDisplay = `${planName} (${billingCycle})`
+        }
+
+        // Expiry Date: Show subscription end date or "-"
+        let expiryDisplay = '-'
+        if (user.subscription && user.subscription.endDate) {
+            expiryDisplay = new Date(user.subscription.endDate).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric'
+            })
+        }
+
+        // Last Active: Show last logout time, or "Never" if not available
+        let lastActiveDisplay = 'Never'
+        if (user.lastLogout) {
+            lastActiveDisplay = new Date(user.lastLogout).toLocaleString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            })
+        }
+
+        // Purchases: Show actual purchased books count
+        const purchasesDisplay = user.purchasedBooks?.length 
+            ? `${user.purchasedBooks.length} Books` 
+            : '0 Books'
+
+        return {
+            id: user._id,
+            name: user.name,
+            email: user.email,
+            plan: planDisplay,
+            expiryDate: expiryDisplay,
+            purchases: purchasesDisplay,
+            lastActive: lastActiveDisplay,
+            avatar: user.profilePhoto || null,
+            isActive: user.isActive
+        }
+    })
 
     const handleSuspend = (user) => {
         setUserToSuspend(user)
@@ -129,10 +170,9 @@ const ManageUsers = () => {
                                     <th className="px-3 py-3 text-left text-xs font-medium text-primary uppercase tracking-wider lg:px-4 xl:px-6">
                                         Last Active
                                     </th>
-                                    <th className="px-3 py-3 text-left text-xs font-medium text-primary uppercase tracking-wider lg:px-4 xl:px-6">
-                                        Suspend
-                                    </th>
-                                    <th className="px-3 py-3 text-left text-xs font-medium text-primary uppercase tracking-wider lg:px-4 xl:px-6 rounded-tr-2xl">
+                                    
+                                    <th className="px-3 py-3 text-left  text-xs font-medium text-primary uppercase tracking-wider lg:px-4 xl:px-6 rounded-tr-2xl">
+                                        Actions
                                     </th>
                                 </tr>
                             </thead>
@@ -189,17 +229,6 @@ const ManageUsers = () => {
                                         <td className="px-3 py-4 whitespace-nowrap lg:px-4 xl:px-6">
                                             <span className="text-xs lg:text-sm text-secondary">{user.lastActive}</span>
                                         </td>
-
-                                        {/* Suspend */}
-                                        <td className="px-3 py-4 whitespace-nowrap lg:px-4 xl:px-6">
-                                            <button
-                                                onClick={() => handleSuspend(user)}
-                                                className="text-xs lg:text-sm text-[#048B50] underline hover:text-[#048B50] transition-colors cursor-pointer"
-                                            >
-                                                Suspend
-                                            </button>
-                                        </td>
-
                                         {/* View */}
                                         <td className="px-3 py-4 whitespace-nowrap lg:px-4 xl:px-6">
                                             <button

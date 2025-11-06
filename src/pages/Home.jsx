@@ -62,11 +62,10 @@ export default function Dashboard() {
       }
     };
 
-    // Only fetch if books are loaded
     if (!isLoading) {
       fetchStats();
     }
-  }, [books, isLoading]); // Refetch when books change or loading completes
+  }, [books, isLoading]);
 
   // Dynamic stats array - use books.length directly for real-time updates and remove the // Kept for future use comment
   const stats = [
@@ -141,6 +140,21 @@ export default function Dashboard() {
     }
   };
 
+  const quickActions = [
+    {
+      icon: PlusIcon,
+      label: 'Add New Book',
+      alt: 'Add',
+      onClick: handleAddNewBook
+    },
+    {
+      icon: Dollar2Icon,
+      label: 'Manage Plans',
+      alt: 'Manage Plans',
+      onClick: handleManagePlans
+    }
+  ];
+
   return (
     <div className="min-h-screen bg-[#FBFFF5]">
       <Header />
@@ -178,58 +192,32 @@ export default function Dashboard() {
             </div>
           ))}
         </div>
+        
         {/* Quick Actions */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-          <div className="rounded-2xl p-4 sm:p-5 flex items-center justify-between border-common ">
-            <div className="flex items-center"
-            >
-              <button 
-                className="rounded-full mr-3 sm:mr-4 cursor-pointer"
-              >
+          {quickActions.map((action, index) => (
+            <div key={index} className="rounded-2xl p-4 sm:p-5 flex items-center justify-between border-common">
+              <div className="flex items-center">
+                <button className="rounded-full mr-3 sm:mr-4 cursor-pointer">
+                  <img
+                    src={action.icon}
+                    alt={action.alt}
+                    className="w-12 h-12"
+                  />
+                </button>
+                <span className="font-semibold text-base sm:text-xl">
+                  {action.label}
+                </span>
+              </div>
+              <div onClick={action.onClick} className="cursor-pointer">
                 <img
-                  src={PlusIcon}
-                  alt="Add"
-                  className="w-12 h-12"
+                  src={ArrowIcon}
+                  alt="Arrow"
+                  className="w-6 h-6 sm:w-8 sm:h-8 text-gray-400"
                 />
-              </button>
-              <span className="font-semibold text-base sm:text-xl">
-                Add New Book
-              </span>
+              </div>
             </div>
-            <div onClick={handleAddNewBook} 
-              className="cursor-pointer"
-              > 
-            <img
-              src={ArrowIcon}
-              alt="Arrow"
-              className="w-6 h-6 sm:w-8 sm:h-8 text-gray-400"
-            />
-            </div>
-          </div>
- 
-          <div className="rounded-2xl p-4 sm:p-5 flex items-center justify-between border-common ">
-            <div className="flex items-center">
-              <button 
-                className="rounded-full mr-3 sm:mr-4 cursor-pointer"
-              >
-                <img
-                  src={Dollar2Icon}
-                  alt="Manage Plans"
-                  className="w-12 h-12"
-                />
-              </button>
-              <span className="font-semibold text-base sm:text-xl">
-                Manage Plans
-              </span>
-            </div>
-            <div onClick={handleManagePlans} className="cursor-pointer">
-            <img
-              src={ArrowIcon}
-              alt="Arrow"
-              className="w-6 h-6 sm:w-8 sm:h-8 text-gray-400"
-            />
-            </div>
-          </div>
+          ))}
         </div>
  
         {/* Books and Users */}
@@ -293,7 +281,7 @@ export default function Dashboard() {
                       Free
                     </span>
                   ) : (
-                    <span className="inline-flex items-center border border-[#FFAA39] text-[#FFAA39] px-3 py-1 rounded-full gap-[6px] text-sm font-medium w-[133px] h-[22px] whitespace-nowrap">
+                    <span className="inline-flex items-center border border-[#FFAA39] text-[#FFAA39] px-3 py-1 rounded-full gap-[6px] text-sm font-medium min-w-[133px] h-[22px]">
                       <img src={CrownIcon} alt="Premium badge icon" />
                       Premium{" "}
                       <span className="text-black ml-1">{book.price}</span>

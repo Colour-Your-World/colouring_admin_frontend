@@ -71,13 +71,44 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = () => {
-    // Clear all stored data
-    apiService.setToken(null);
-    localStorage.clear(); // Clear all localStorage items
-    
-    setUser(null);
-    setIsAuthenticated(false);
+  const logout = async () => {
+    try {
+      // Call backend to update user status (isOnline: false, lastLogout)
+      await apiService.logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Continue with logout even if API call fails
+    } finally {
+      // Clear all stored data
+      apiService.setToken(null);
+      localStorage.clear(); // Clear all localStorage items
+      
+      setUser(null);
+      setIsAuthenticated(false);
+    }
+  };
+
+  const deleteAccount = async () => {
+    try {
+      // Delete the current user's account
+      const response = await apiService.deleteAccount();
+      
+      if (response.success) {
+        // Clear all stored data after successful deletion
+        apiService.setToken(null);
+        localStorage.clear();
+        
+        setUser(null);
+        setIsAuthenticated(false);
+        
+        return { success: true, message: 'Account deleted successfully' };
+      }
+      
+      return { success: false, error: 'Failed to delete account' };
+    } catch (error) {
+      console.error('Delete account error:', error);
+      return { success: false, error: error.message };
+    }
   };
 
   const updateUser = (updatedUser) => {
@@ -90,6 +121,7 @@ export const AuthProvider = ({ children }) => {
     isLoading,
     login,
     logout,
+    deleteAccount,
     updateUser,
   };
 
