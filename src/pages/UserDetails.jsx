@@ -24,9 +24,11 @@ const UserDetails = () => {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false)
     const [isSuspendModalOpen, setIsSuspendModalOpen] = useState(false)
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+    const [isCancelSubscriptionModalOpen, setIsCancelSubscriptionModalOpen] = useState(false)
     const [isPlanDropdownOpen, setIsPlanDropdownOpen] = useState(false)
     const [isSuspending, setIsSuspending] = useState(false)
     const [isDeleting, setIsDeleting] = useState(false)
+    const [isCancelling, setIsCancelling] = useState(false)
     const dropdownRef = useRef(null)
     const planDropdownRef = useRef(null)
 
@@ -178,7 +180,6 @@ const UserDetails = () => {
 
     const handleExportReport = () => {
         setIsDropdownOpen(false)
-        // Add export report logic here
         console.log('Export user report clicked')
     }
 
@@ -211,7 +212,6 @@ const UserDetails = () => {
             
             if (result.success) {
                 setIsDeleteModalOpen(false)
-                // Navigate back to users list after successful deletion
                 navigate('/users')
             } else {
                 alert(result.error || 'Failed to delete user. Please try again.')
@@ -230,8 +230,30 @@ const UserDetails = () => {
 
     const handleCancelSubscription = () => {
         setIsPlanDropdownOpen(false)
-        // Add cancel subscription logic here
-        console.log('Cancel subscription clicked')
+        setIsCancelSubscriptionModalOpen(true)
+    }
+
+    const handleConfirmCancelSubscription = async () => {
+        if (!user) return
+
+        try {
+            setIsCancelling(true)
+            // TODO: Add API call to cancel subscription
+            // const result = await cancelSubscription(user.id)
+            // if (result.success) {
+            //     setIsCancelSubscriptionModalOpen(false)
+            //     // Update user data or navigate
+            // } else {
+            //     alert('Failed to cancel subscription. Please try again.')
+            // }
+            console.log('Cancel subscription for:', user.name)
+            setIsCancelSubscriptionModalOpen(false)
+            // For now, just close the modal
+        } catch (error) {
+            alert('Failed to cancel subscription. Please try again.')
+        } finally {
+            setIsCancelling(false)
+        }
     }
 
     // Dropdown menu items
@@ -515,7 +537,8 @@ const UserDetails = () => {
                 <SuspendModal
                     isOpen={isSuspendModalOpen}
                     onClose={() => setIsSuspendModalOpen(false)}
-                    onConfirm={handleConfirmSuspend}
+                    onSuspend={handleConfirmSuspend}
+                    userName={user?.name || 'this user'}
                 />
 
                 {/* Delete Modal */}
@@ -526,6 +549,14 @@ const UserDetails = () => {
                     userName={user?.name || 'this user'}
                     deleteType="account"
                     isDeleting={isDeleting}
+                />
+
+                {/* Cancel Subscription Modal */}
+                <SuspendModal
+                    isOpen={isCancelSubscriptionModalOpen}
+                    onClose={() => setIsCancelSubscriptionModalOpen(false)}
+                    onSuspend={handleConfirmCancelSubscription}
+                    userName={user?.name || 'this user'}
                 />
             </div>
         </div>

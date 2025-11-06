@@ -172,7 +172,6 @@ const ManageSubscriptions = () => {
 
     const handleDateRangeSelect = () => {
         if (startDate && endDate) {
-            // Apply date range filter logic here
             console.log('Date range selected:', { startDate, endDate })
             setIsDatePickerOpen(false)
         }

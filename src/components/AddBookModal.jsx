@@ -13,7 +13,7 @@ const validationSchema = Yup.object({
         .required('Book name is required'),
     description: Yup.string()
         .trim()
-        .required('Description is required'),
+        .notRequired(),
     isFree: Yup.boolean().default(true),
     price: Yup.number()
         .transform((value, originalValue) => (originalValue === '' ? undefined : value))

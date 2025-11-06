@@ -196,8 +196,8 @@ export default function Dashboard() {
         {/* Quick Actions */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
           {quickActions.map((action, index) => (
-            <div key={index} className="rounded-2xl p-4 sm:p-5 flex items-center justify-between border-common">
-              <div className="flex items-center">
+            <div key={index} className="rounded-2xl p-4 sm:p-5 flex items-center justify-between border-common cursor-pointer" onClick={action.onClick}>
+              <div className="flex items-center " >
                 <button className="rounded-full mr-3 sm:mr-4 cursor-pointer">
                   <img
                     src={action.icon}
@@ -209,7 +209,7 @@ export default function Dashboard() {
                   {action.label}
                 </span>
               </div>
-              <div onClick={action.onClick} className="cursor-pointer">
+              <div  className="cursor-pointer">
                 <img
                   src={ArrowIcon}
                   alt="Arrow"
