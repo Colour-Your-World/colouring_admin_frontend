@@ -149,8 +149,9 @@ const EditPlan = () => {
                                                 error={errors.price}
                                                 touched={touched.price}
                                                 disabled={isSubmitting}
+                                                inputClassName="!pl-8"
                                             >
-                                                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sm text-gray-500">$</span>
+                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-base font-medium text-gray-500 pointer-events-none" style={{ lineHeight: '1' }}>$</span>
                                             </Input>
                                         </div>
                                     </div>

@@ -88,7 +88,7 @@ function Login() {
 
                 if (result.success) {
                   navigate('/home');
-                } else {
+                  } else {
                   setStatus(result.error || 'Login failed');
                 }
               } catch (err) {

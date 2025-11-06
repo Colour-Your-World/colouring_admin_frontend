@@ -54,7 +54,6 @@ export const AuthProvider = ({ children }) => {
       if (response.success) {
         const { user: userData, tokens } = response.data;
         
-        // Store only token
         apiService.setToken(tokens.accessToken);
         localStorage.setItem('accessToken', tokens.accessToken);
         
@@ -73,15 +72,12 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      // Call backend to update user status (isOnline: false, lastLogout)
       await apiService.logout();
     } catch (error) {
       console.error('Logout error:', error);
-      // Continue with logout even if API call fails
     } finally {
-      // Clear all stored data
       apiService.setToken(null);
-      localStorage.clear(); // Clear all localStorage items
+      localStorage.clear(); 
       
       setUser(null);
       setIsAuthenticated(false);
@@ -90,11 +86,9 @@ export const AuthProvider = ({ children }) => {
 
   const deleteAccount = async () => {
     try {
-      // Delete the current user's account
       const response = await apiService.deleteAccount();
       
       if (response.success) {
-        // Clear all stored data after successful deletion
         apiService.setToken(null);
         localStorage.clear();
         
