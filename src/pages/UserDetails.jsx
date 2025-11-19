@@ -259,14 +259,12 @@ const UserDetails = () => {
         fetchPaymentHistory()
     }, [userId])
 
-    // Calculate total spend from payment history
-    const totalSpend = paymentHistory
-        .filter(p => p.status === 'Success')
-        .reduce((total, payment) => {
-            const amountString = payment.amount.replace(/[^\d.]/g, '')
-            const amount = parseFloat(amountString) || 0
-            return total + amount
-        }, 0)
+    // Calculate total spend from book purchases only
+    const totalSpend = purchases.reduce((total, purchase) => {
+        const amountString = purchase.price.replace(/[^\d.]/g, '')
+        const amount = parseFloat(amountString) || 0
+        return total + amount
+    }, 0)
 
     const handleDropdownToggle = () => {
         setIsDropdownOpen(!isDropdownOpen)
