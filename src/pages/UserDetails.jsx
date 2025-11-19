@@ -81,7 +81,6 @@ const UserDetails = () => {
                         }
                     }
                     
-                    // Last Active - use lastLogin if available, otherwise lastLogout
                     let lastActiveDisplay = 'Never'
                     if (userData.lastLogin) {
                         lastActiveDisplay = new Date(userData.lastLogin).toLocaleDateString('en-US', {
@@ -97,9 +96,7 @@ const UserDetails = () => {
                         })
                     }
                     
-                    // Start Date
                     let startDateDisplay = '-'
-                    // Check subscriptionData first, then fallback to null check
                     if (subscriptionData) {
                         if (subscriptionData.startDate) {
                             try {
@@ -124,7 +121,6 @@ const UserDetails = () => {
                         })
                     }
                     
-                    // Get billing cycle from plan duration
                     const billingCycle = plan?.duration || planDuration || 'monthly'
                     
                     setUser({
@@ -136,7 +132,7 @@ const UserDetails = () => {
                         billingCycle: billingCycle,
                         startDate: startDateDisplay,
                         expiryDate: expiryDateDisplay,
-                        nextBillingDate: nextBillingDate || expiryDateDisplay, // Fallback to expiryDate for Next Billing Date display
+                        nextBillingDate: nextBillingDate || expiryDateDisplay,
                         purchases: `${booksPurchasedCount} Books`,
                         lastActive: lastActiveDisplay,
                         avatar: userData.profilePhoto || null
@@ -317,14 +313,6 @@ const UserDetails = () => {
         }
     }
 
-    const handlePlanDropdownToggle = () => {
-        setIsPlanDropdownOpen(!isPlanDropdownOpen)
-    }
-
-    const handleCancelSubscription = () => {
-        setIsPlanDropdownOpen(false)
-        setIsCancelSubscriptionModalOpen(true)
-    }
 
     const handleConfirmCancelSubscription = async () => {
         if (!user) return
@@ -578,26 +566,6 @@ const UserDetails = () => {
                             <div className="text-xs sm:text-sm text-secondary">
                                 Next Billing Date: <span className="font-medium text-primary">{user?.nextBillingDate || user?.expiryDate || '-'}</span>
                             </div>
-                            <div className="relative" ref={planDropdownRef}>
-                                <img 
-                                    src={threeDot} 
-                                    alt="Options" 
-                                    className="w-4 h-4 sm:w-5 sm:h-5 cursor-pointer" 
-                                    onClick={handlePlanDropdownToggle}
-                                />
-                                
-                                {/* Plan Dropdown Menu */}
-                                {isPlanDropdownOpen && (
-                                    <div className="absolute right-0 top-8 z-50 w-48 bg-[#FBFFF5] rounded-lg shadow-lg border border-gray-200 py-2 px-1">
-                                        <button
-                                            onClick={handleCancelSubscription}
-                                            className="w-full flex items-center justify-center gap-3 px-4 py-3 text-sm text-primary hover:bg-[#F2F5ED] transition-colors cursor-pointer rounded-lg font-medium"
-                                        >
-                                            <span>Cancel Subscription</span>
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
                         </div>
                     </div>
                     <div className="mb-3 sm:mb-4">
@@ -640,29 +608,34 @@ const UserDetails = () => {
                             </div>
                         ) : (
                             purchases.map((purchase, index) => (
-                                <div key={purchase.id} className={`flex items-center gap-3 sm:gap-4 p-2 sm:p-3 ${index !== purchases.length - 1 ? 'border-b border-[#0F100B]/10' : ''}`}>
-                                    <div className="w-10 h-12 sm:w-12 sm:h-16 bg-gray-300 rounded overflow-hidden flex-shrink-0">
-                                        {purchase.thumbnail ? (
-                                            <img 
-                                                src={purchase.thumbnail} 
-                                                alt={purchase.title} 
-                                                className="w-full h-full object-cover"
-                                                onError={(e) => {
-                                                    e.target.style.display = 'none';
-                                                    e.target.parentElement.innerHTML = '<span class="text-xs text-gray-600 flex items-center justify-center h-full">Book</span>';
-                                                }}
-                                            />
-                                        ) : (
-                                            <div className="w-full h-full flex items-center justify-center">
-                                                <span className="text-xs text-gray-600">Book</span>
-                                            </div>
-                                        )}
+                                <div key={purchase.id} className={`flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 p-2 sm:p-3 ${index !== purchases.length - 1 ? 'border-b border-[#0F100B]/10' : ''}`}>
+                                    <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+                                        <div className="w-10 h-12 sm:w-12 sm:h-16 bg-gray-300 rounded overflow-hidden flex-shrink-0">
+                                            {purchase.thumbnail ? (
+                                                <img 
+                                                    src={purchase.thumbnail} 
+                                                    alt={purchase.title} 
+                                                    className="w-full h-full object-cover"
+                                                    onError={(e) => {
+                                                        e.target.style.display = 'none';
+                                                        e.target.parentElement.innerHTML = '<span class="text-xs text-gray-600 flex items-center justify-center h-full">Book</span>';
+                                                    }}
+                                                />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center">
+                                                    <span className="text-xs text-gray-600">Book</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <h4 className="text-xs sm:text-sm font-medium text-primary truncate mb-1">{purchase.title}</h4>
+                                            <p className="text-xs text-secondary hidden sm:block">Purchased: {purchase.purchaseDate}</p>
+                                        </div>
                                     </div>
-                                    <div className="flex-1 min-w-0">
-                                        <h4 className="text-xs sm:text-sm font-medium text-primary truncate">{purchase.title}</h4>
-                                        <p className="text-xs text-secondary">Purchased: {purchase.purchaseDate}</p>
+                                    <div className="flex flex-row items-center justify-between sm:justify-end gap-2 sm:gap-3 pl-[52px] sm:pl-0">
+                                        <div className="text-xs sm:text-sm font-medium text-primary whitespace-nowrap">{purchase.price}</div>
+                                        <div className="text-xs sm:text-sm text-[#707070]">Purchased: {purchase.purchaseDate}</div>
                                     </div>
-                                    <div className="text-xs sm:text-sm font-medium text-primary whitespace-nowrap">{purchase.price}</div>
                                 </div>
                             ))
                         )}

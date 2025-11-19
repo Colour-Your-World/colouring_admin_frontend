@@ -67,6 +67,7 @@ const Pagination = ({
             onPageChange(1);
           }}
           className="border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-secondary cursor-pointer"
+          style={{ cursor: 'pointer' }}
         >
           <option value={9}>9</option>
           <option value={15}>15</option>

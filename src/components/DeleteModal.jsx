@@ -50,13 +50,16 @@ const DeleteModal = ({ isOpen, onClose, onDelete, userName = "this user", delete
                     </div>
 
                     {/* Title */}
-                    <h2 className="text-xl font-semibold text-primary text-center mb-3">
-                        {deleteType === "book" ? "Delete Book" : "Delete Account"}
-                    </h2>
+                    <h2 className="text-xl font-semibold text-center text-primary mb-3">
+                        {deleteType === "book" ? `Delete Book ${userName}` : "Delete Account"}
+                    </h2>   
 
                     {/* Confirmation Message */}
                     <p className="text-sm text-secondary text-center mb-8">
-                        Are you sure you want to delete {deleteType === "book" ? userName : `${userName}'s account`}?
+                        {deleteType === "book" 
+                            ? `Are you sure you want to delete the book ?` 
+                            : `Are you sure you want to delete ${userName}'s account?`
+                        }
                     </p>
 
                     {/* Action Buttons */}

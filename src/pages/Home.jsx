@@ -40,12 +40,31 @@ export default function Dashboard() {
         // Store top 5 latest users for display
         const latestUsers = allUsers
           .slice(0, 5)
-          .map(user => ({
-            name: user.name || 'Unknown User',
-            email: user.email || '',
-            avatar: user.profilePhoto || null,
-            type: user.isPremium ? 'Premium' : 'Free'
-          }));
+          .map(user => {
+            let isPremium = false;
+            if (user.role === 'admin') {
+              isPremium = false;
+            } else {
+              const plan = user.purchasedPlan || user.subscription?.plan || null;
+              if (plan) {
+                const subscription = user.subscription || null;
+                if (subscription && subscription.endDate) {
+                  const endDate = new Date(subscription.endDate);
+                  const now = new Date();
+                  isPremium = endDate > now;
+                } else if (plan) {
+                  isPremium = true;
+                }
+              }
+            }
+            
+            return {
+              name: user.name || 'Unknown User',
+              email: user.email || '',
+              avatar: user.profilePhoto || null,
+              type: isPremium ? 'Premium' : 'Free'
+            };
+          });
         
         setUsers(latestUsers);
 
@@ -68,7 +87,6 @@ export default function Dashboard() {
                 return false;
               }
               
-              // Only count completed payments
               if (payment.status !== 'completed') {
                 return false;
               }
@@ -339,7 +357,7 @@ export default function Dashboard() {
           </div>
 
           {/* Latest Users */}
-          <div className="w-full max-w-[631px]  mx-auto overflow-hidden">
+          <div className="w-full mx-auto overflow-hidden">
             <div className=" rounded-2xl px-5 py-4 border-common ">
               <div className="flex justify-between items-center mb-2 ">
                 <span className=" font-semibold text-xl">
@@ -380,7 +398,7 @@ export default function Dashboard() {
                   {users.map((user, i) => (
                     <div
                       key={i}
-                      className="flex items-center py-2 px-3 border-b rounded-lg mb-0 border-gray-200 last:border-b-0 flex-wrap sm:flex-nowrap"
+                      className="flex items-center py-2 px-3 border-b border-gray-200 last:border-b-0 flex-wrap sm:flex-nowrap"
                     >
                       {user.avatar ? (
                         <img
@@ -393,7 +411,7 @@ export default function Dashboard() {
                           <img
                             src={ProfileIcon1}
                             alt="Default Profile"
-                            className="w-5 h-5 opacity-60"
+                            className="w-5 h-5"
                           />
                         </div>
                       )}
@@ -401,7 +419,7 @@ export default function Dashboard() {
                         <div className="font-semibold">
                           {user.name}
                         </div>
-                        <div className="text-sm text-gray-500  max-w-[140px] ">
+                        <div className="text-sm text-gray-500 ">
                           {user.email}
                         </div>
                       </div>
@@ -411,8 +429,7 @@ export default function Dashboard() {
                         </span>
                       ) : (
                         <span className="inline-flex items-center border border-[#FFAA39] text-[#FFAA39] px-2 py-[2px] rounded-full gap-1 text-sm font-medium min-w-[60px] h-[20px] whitespace-nowrap">
-                          {" "}
-                          <img src={CrownIcon} alt="Premium" />
+                            <img src={CrownIcon} alt="Premium" />
                           Pro
                         </span>
                       )}

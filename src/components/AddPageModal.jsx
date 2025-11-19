@@ -125,7 +125,7 @@ const AddPageModal = ({ isOpen, onClose, onAddPage, bookId, existingPages = [] }
                                     <img src={upload} alt="Upload" className="w-16 h-16" />
                                     <div>
                                         <h3 className="text-lg font-semibold text-primary mb-2">Upload page image</h3>
-                                        <p className="text-sm text-gray-500">Supported formats: PNG, JPG, PDF</p>
+                                        <p className="text-sm text-gray-500">Supported formats: PNG, JPG</p>
                                     </div>
                                     <Button
                                         type="button"
@@ -160,21 +160,6 @@ const AddPageModal = ({ isOpen, onClose, onAddPage, bookId, existingPages = [] }
 
                             {/* Form Fields */}
                             <div className="space-y-4">
-                                <Input
-                                    id="pageTitle"
-                                    name="pageTitle"
-                                    label="Page Title"
-                                    type="text"
-                                    value={values.pageTitle}
-                                    onChange={handleChange}
-                                    onBlur={handleBlur}
-                                    placeholder="Enter page title (optional)"
-                                    helperText="Leave blank to auto-generate"
-                                    error={errors.pageTitle}
-                                    touched={touched.pageTitle}
-                                    disabled={isSubmitting}
-                                />
-
                                 <div>
                                     <label className="block text-sm font-medium text-primary mb-3">
                                         Page Type

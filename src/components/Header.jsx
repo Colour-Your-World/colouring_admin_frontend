@@ -70,13 +70,19 @@ const Header = () => {
     <header className="sticky top-0 z-50 w-full bg-[#F3F8EC] px-4 py-3 shadow-sm">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         {/* Logo Section */}
-        <div className="flex items-center">
+        <div className="flex items-center gap-4">
           <img 
             src={logo} 
             alt="Logo" 
             className="h-8 w-8 md:h-10 md:w-10 cursor-pointer" 
             onClick={() => navigate('/home')}
           />
+          <button
+            onClick={() => navigate('/home')}
+            className="text-sm md:text-base font-medium text-primary hover:text-secondary transition-colors cursor-pointer"
+          >
+            Home
+          </button>
         </div>
 
         {/* User Profile Section */}
