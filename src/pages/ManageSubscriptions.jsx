@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import Header from '../components/Header'
 import SuspendModal from '../components/SuspendModal'
 import Pagination from '../components/Pagination'
 import FilterDropdown from '../components/FilterDropdown'
@@ -245,9 +244,10 @@ const ManageSubscriptions = () => {
 
 
     const tabs = [
-        { id: 'all', label: 'All Subscriptions' },
+        { id: 'all', label: 'All Subscriptions And Books' },
+        { id: 'books', label: 'Books' },
         { id: 'active', label: 'Active' },
-        { id: 'expired', label: 'Expired / Canceled' }
+        { id: 'expired', label: 'Expired / Canceled' },
     ]
 
     const handleViewUser = (subscription) => {
@@ -333,13 +333,19 @@ const ManageSubscriptions = () => {
         filteredSubscriptions = filteredSubscriptions.filter(sub => 
             sub.isExpired || sub.isCancelled
         )
+    } else if (activeTab === 'books') {
+        // Show only books
+        filteredSubscriptions = filteredSubscriptions.filter(sub => 
+            sub.isBook
+        )
     }
 
-    // Filter by plan type
+    // Filter by plan type (only for subscriptions, not books)
     if (selectedPlan !== 'Plan') {
         const planType = selectedPlan.toLowerCase()
         filteredSubscriptions = filteredSubscriptions.filter(sub => 
-            planType === 'monthly' ? sub.planDuration === 'monthly' : sub.planDuration === 'yearly'
+            // Include books OR filter subscriptions by plan type
+            sub.isBook || (planType === 'monthly' ? sub.planDuration === 'monthly' : sub.planDuration === 'yearly')
         )
     }
 
@@ -381,12 +387,8 @@ const ManageSubscriptions = () => {
 
     return (
         <>
-            <div className="min-h-screen bg-[#FBFFF5]">
-                {/* Header */}
-                <Header />
-
-                {/* Page Navigation */}
-                <div className="mx-auto px-4 py-6 max-w-7xl">
+            {/* Page Navigation */}
+            <div className="mx-auto px-4 py-6 max-w-7xl">
                     <div className="flex items-center gap-3">
                         <img
                             src={arrowLeft}
@@ -638,8 +640,6 @@ const ManageSubscriptions = () => {
                             />
                         </div>
                     </div>
-
-            </div>
 
             {/* Cancel Subscription Modal */}
             <SuspendModal

@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import Header from '../components/Header';
 import Input from '../components/Input';
 import Button from '../components/Button';
 import LogoutModal from '../components/LogoutModal';
@@ -164,11 +163,7 @@ const EditProfile = () => {
     };
 
     return (
-        <div className="min-h-screen bg-[#FBFFF5]">
-            <Header />
-
-            {/* Main Content */}
-            <div className="relative z-10 max-w-7xl mx-auto px-4 py-6 sm:py-8 ">
+        <div className="relative z-10 max-w-7xl mx-auto px-4 py-6 sm:py-8 ">
                 {/* Navigation */}
                 <div className=" flex justify-between items-center pb-4" >
                     <button
@@ -330,7 +325,6 @@ const EditProfile = () => {
                     onClose={() => setIsLogoutModalOpen(false)}
                     onConfirm={handleConfirmLogout}
                 />
-            </div>
         </div>
     );
 };

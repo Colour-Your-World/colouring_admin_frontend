@@ -7,9 +7,7 @@ import calendar from '../assets/calendar.svg'
 import threeDot from '../assets/3Dot.svg'
 import exportIcon from '../assets/export.svg'
 import deleteUser from '../assets/deleteUser.svg'
-import suspend from '../assets/suspend.svg'
 import profileIcon from '../assets/profile2.svg'
-import Header from '../components/Header'
 import SuspendModal from '../components/SuspendModal'
 import DeleteModal from '../components/DeleteModal'
 
@@ -270,11 +268,6 @@ const UserDetails = () => {
         setIsDropdownOpen(!isDropdownOpen)
     }
 
-    const handleSuspendUser = () => {
-        setIsDropdownOpen(false)
-        setIsSuspendModalOpen(true)
-    }
-
     const handleDeleteAccount = () => {
         setIsDropdownOpen(false)
         setIsDeleteModalOpen(true)
@@ -481,24 +474,16 @@ const UserDetails = () => {
     // Show loading state
     if (isLoading || !user) {
         return (
-            <div className="min-h-screen bg-[#FBFFF5]">
-                <Header />
-                <div className="mx-auto px-4 py-6 max-w-7xl">
-                    <div className="flex items-center justify-center py-12">
-                        <div className="text-secondary">Loading user details...</div>
-                    </div>
+            <div className="mx-auto px-4 py-6 max-w-7xl">
+                <div className="flex items-center justify-center py-12">
+                    <div className="text-secondary">Loading user details...</div>
                 </div>
             </div>
         )
     }
 
     return (
-        <div className="min-h-screen bg-[#FBFFF5]">
-            {/* Header */}
-            <Header />
-
-            {/* Main Content */}
-            <div className="mx-auto px-4 py-6 max-w-7xl">
+        <div className="mx-auto px-4 py-6 max-w-7xl">
                 {/* Page Navigation */}
                 <div className="flex items-center gap-3 pb-4 sm:pb-6">
                     <img
@@ -792,7 +777,6 @@ const UserDetails = () => {
                     onSuspend={handleConfirmCancelSubscription}
                     userName={user?.name || 'this user'}
                 />
-            </div>
         </div>
     )
 }

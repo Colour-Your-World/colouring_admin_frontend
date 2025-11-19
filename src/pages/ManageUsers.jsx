@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import arrowLeft from '../assets/arrowLeft.svg'
 import eye from '../assets/eye.svg'
 import profileUser from '../assets/profileUser.svg'
-import Header from '../components/Header'
 import SuspendModal from '../components/SuspendModal'
 import { useUsers } from '../hooks/useUsers'
 
@@ -109,12 +108,7 @@ const ManageUsers = () => {
 
 
     return (
-        <div className="min-h-screen bg-[#FBFFF5]">
-            {/* Header */}
-            <Header />
-
-            {/* Main Content */}
-            <div className="mx-auto px-4 py-6 max-w-7xl">
+        <div className="mx-auto px-4 py-6 max-w-7xl">
                 {/* Page Navigation */}
                 <div className="flex items-center gap-3 pb-4 sm:pb-6">
                     <img 
@@ -318,7 +312,6 @@ const ManageUsers = () => {
                         </div>
                     )}
                 </div>
-            </div>
 
             {/* Modals */}
             <SuspendModal

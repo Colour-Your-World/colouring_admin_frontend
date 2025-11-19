@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import Header from "../components/Header";
 import AddBookModal from "../components/AddBookModal";
 import { useBooks } from "../hooks/useBooks";
+import { useAuth } from "../contexts/AuthContext";
 import apiService from "../services/api";
 import BookIcon from "../assets/books.svg";
 import ProfileIcon from "../assets/profile.svg";
@@ -17,6 +17,7 @@ import CrownIcon from "../assets/premium.svg";
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [isAddBookModalOpen, setIsAddBookModalOpen] = useState(false);
   const { books, isLoading, error, createBook } = useBooks();
   const [users, setUsers] = useState([]);
@@ -203,12 +204,10 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#FBFFF5]">
-      <Header />
-      <div className="max-w-7xl mx-auto px-10 py-4">
+    <div className="max-w-7xl mx-auto px-10 py-4">
         <div className="mb-6">
           <h1 className="text-2xl tracking-tighter font-semibold">
-            Hey, Emma
+            Hey, {user?.name ? user.name.split(' ')[0] : 'User'}
           </h1>
           <p className="text-gray-500">
             Let's manage your dashboard effortlessly
@@ -424,7 +423,6 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
-      </div>
 
       {/* Add Book Modal */}
       <AddBookModal

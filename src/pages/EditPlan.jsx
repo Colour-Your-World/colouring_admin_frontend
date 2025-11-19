@@ -2,7 +2,6 @@ import { useMemo } from 'react'
 import { Formik, Form } from 'formik'
 import * as Yup from 'yup'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
-import Header from '../components/Header'
 import Button from '../components/Button'
 import Input from '../components/Input'
 import { usePlans } from '../hooks/usePlans'
@@ -47,12 +46,7 @@ const EditPlan = () => {
 
     return (
         <>
-            <div className="min-h-screen bg-[#FBFFF5]">
-                {/* Header */}
-                <Header />
-
-                {/* Page Navigation */}
-                <div className="mx-auto px-4 py-6 max-w-7xl">
+            <div className="mx-auto px-4 py-6 max-w-7xl">
                     <div className="flex items-center gap-3">
                         <img
                             src={arrowLeft}
@@ -241,7 +235,6 @@ const EditPlan = () => {
                         </Formik>
                     </div>
                 </div>
-            </div>
         </>
     )
 }

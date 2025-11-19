@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import Header from '../components/Header'
 import Button from '../components/Button'
 import DeleteModal from '../components/DeleteModal'
 import { usePlans } from '../hooks/usePlans'
@@ -104,12 +103,7 @@ const ManagePlans = () => {
 
     return (
         <>
-            <div className="min-h-screen bg-[#FBFFF5]">
-                {/* Header */}
-                <Header />
-
-                {/* Page Navigation */}
-                <div className="mx-auto px-4 py-6 max-w-7xl">
+            <div className="mx-auto px-4 py-6 max-w-7xl">
                     <div className="flex items-center gap-3 pb-4 sm:pb-6">
                         <img
                             src={arrowLeft}
@@ -245,8 +239,6 @@ const ManagePlans = () => {
                         </div>
                     )}
                 </div>
-            </div>
-
             {/* Delete Modal */}
             <DeleteModal
                 isOpen={isDeleteModalOpen}

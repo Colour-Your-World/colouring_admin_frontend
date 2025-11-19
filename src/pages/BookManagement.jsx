@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import Header from '../components/Header'
 import BookList from '../components/BookList'
 import Pagination from '../components/Pagination'
 import Button from '../components/Button'
@@ -65,9 +64,7 @@ const BookManagement = () => {
     const navigate = useNavigate()
 
     return (
-        <div className="min-h-screen">
-            <Header />
-            <div className="bg-[#FBFFF5]">
+        <div className="bg-[#FBFFF5]">
             <div className="container mx-auto px-4 py-6 max-w-7xl ">
                 {/* Title Bar */}
                 <div className="flex items-center gap-3 pb-4 ">
@@ -167,7 +164,6 @@ const BookManagement = () => {
                     </div>
                 </div>
             </div>
-        </div>
 
         {/* Add Book Modal */}
         <AddBookModal
@@ -176,7 +172,7 @@ const BookManagement = () => {
             onSubmit={handleAddBook}
         />
     </div>
-    )   
+    )
 }
 
 export default BookManagement

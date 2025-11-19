@@ -1,10 +1,10 @@
 import React from 'react';
 import Header from './Header';
 
-const Layout = ({ children, showHeader = true, user }) => {
+const Layout = ({ children, showHeader = true }) => {
   return (
     <div className="min-h-screen bg-[#FBFFF5]">
-      {showHeader && <Header user={user} />}
+      {showHeader && <Header />}
       <main className="flex-1">
         {children}
       </main>

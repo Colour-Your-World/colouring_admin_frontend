@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation, useParams } from 'react-router-dom'
-import Header from '../components/Header'
 import Button from '../components/Button'
 import AddPageModal from '../components/AddPageModal'
 import DeleteModal from '../components/DeleteModal'
@@ -248,12 +247,9 @@ const EditBook = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-[#FBFFF5]">
-                <Header />
-                <div className="container mx-auto px-4 py-6 max-w-8xl">
-                    <div className="flex justify-center items-center py-20">
-                        <div className="text-primary text-lg">Loading book data...</div>
-                    </div>
+            <div className="container mx-auto px-4 py-6 max-w-8xl">
+                <div className="flex justify-center items-center py-20">
+                    <div className="text-primary text-lg">Loading book data...</div>
                 </div>
             </div>
         )
@@ -261,12 +257,9 @@ const EditBook = () => {
 
     if (error) {
         return (
-            <div className="min-h-screen bg-[#FBFFF5]">
-                <Header />
-                <div className="container mx-auto px-4 py-6 max-w-8xl">
-                    <div className="flex justify-center items-center py-20">
-                        <div className="text-red-500 text-lg">{error}</div>
-                    </div>
+            <div className="container mx-auto px-4 py-6 max-w-8xl">
+                <div className="flex justify-center items-center py-20">
+                    <div className="text-red-500 text-lg">{error}</div>
                 </div>
             </div>
         )
@@ -274,22 +267,16 @@ const EditBook = () => {
 
     if (!bookData) {
         return (
-            <div className="min-h-screen bg-[#FBFFF5]">
-                <Header />
-                <div className="container mx-auto px-4 py-6 max-w-8xl">
-                    <div className="flex justify-center items-center py-20">
-                        <div className="text-gray-500 text-lg">Book not found</div>
-                    </div>
+            <div className="container mx-auto px-4 py-6 max-w-8xl">
+                <div className="flex justify-center items-center py-20">
+                    <div className="text-gray-500 text-lg">Book not found</div>
                 </div>
             </div>
         )
     }
 
     return (
-        <div className="min-h-screen bg-[#FBFFF5]">
-            <Header />
-            <div className="container mx-auto px-4 py-6 max-w-7xl">
-                {/* Header */}
+        <div className="container mx-auto px-4 py-6 max-w-7xl">
                 <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-3">
                         <img 
@@ -487,7 +474,6 @@ const EditBook = () => {
                         )}
                      </div>
                  </div>
-             </div>
 
              {/* Add Page Modal */}
              <AddPageModal
