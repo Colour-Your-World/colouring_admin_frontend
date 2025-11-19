@@ -302,6 +302,12 @@ const ManageSubscriptions = () => {
 
     const handleDurationSelect = (duration) => {
         setSelectedDuration(duration)
+        // Clear date range if not custom
+        if (duration !== 'Custom') {
+            setStartDate('')
+            setEndDate('')
+            setIsDatePickerOpen(false)
+        }
     }
 
     const handleDateRangeApply = () => {
@@ -453,16 +459,18 @@ const ManageSubscriptions = () => {
 
                             {/* Filters */}
                             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-                                <DateRangePicker
-                                    startDate={startDate}
-                                    endDate={endDate}
-                                    onStartDateChange={setStartDate}
-                                    onEndDateChange={setEndDate}
-                                    onApply={handleDateRangeApply}
-                                    onClear={handleClearDateRange}
-                                    isOpen={isDatePickerOpen}
-                                    onToggle={setIsDatePickerOpen}
-                                />
+                                {selectedDuration === 'Custom' && (
+                                    <DateRangePicker
+                                        startDate={startDate}
+                                        endDate={endDate}
+                                        onStartDateChange={setStartDate}
+                                        onEndDateChange={setEndDate}
+                                        onApply={handleDateRangeApply}
+                                        onClear={handleClearDateRange}
+                                        isOpen={isDatePickerOpen}
+                                        onToggle={setIsDatePickerOpen}
+                                    />
+                                )}
 
                                 <FilterDropdown
                                     label="Duration"

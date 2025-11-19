@@ -8,4 +8,7 @@ export default defineConfig({
     react(),
     tailwindcss()
   ],
+  resolve: {
+    dedupe: ['@emotion/react', '@emotion/styled']
+  }
 })

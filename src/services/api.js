@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL + '/api';
 
 class ApiService {
   constructor() {
@@ -36,9 +36,6 @@ class ApiService {
     if (this.token) {
       headers.Authorization = `Bearer ${this.token}`;
     }
-    
-    // Don't set Content-Type for FormData - let browser set it with boundary
-    // headers['Content-Type'] = 'multipart/form-data';
     
     return headers;
   }

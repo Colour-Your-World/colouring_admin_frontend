@@ -14,7 +14,7 @@ import ArrowIcon from "../assets/altArrowRight.svg";
 import DailyActivities from "../assets/book2.svg";
 import ProfileIcon1 from "../assets/profile2.svg";
 import CrownIcon from "../assets/premium.svg";
- 
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const [isAddBookModalOpen, setIsAddBookModalOpen] = useState(false);
@@ -48,8 +48,55 @@ export default function Dashboard() {
         
         setUsers(latestUsers);
 
-        const activeSubscriptions = 0;
-        const totalRevenue = 0;
+        // Fetch subscription and revenue data
+        let activeSubscriptions = 0;
+        let totalRevenue = 0;
+
+        try {
+          const paymentsResponse = await apiService.getAllPaymentHistory();
+          
+          if (paymentsResponse.success) {
+            // Get all payments (both subscription and book payments)
+            const allPayments = paymentsResponse.data?.payments || [];
+            
+            // Filter for active subscriptions (non-book payments with status 'completed' that are not expired)
+            const now = new Date();
+            activeSubscriptions = allPayments.filter(payment => {
+              // Only count subscription payments (not book payments)
+              if (payment.type !== 'subscription' || !payment.plan) {
+                return false;
+              }
+              
+              // Only count completed payments
+              if (payment.status !== 'completed') {
+                return false;
+              }
+              
+              const paymentDate = new Date(payment.createdAt);
+              const renewalDate = new Date(paymentDate);
+              const duration = payment.plan.duration || 'monthly';
+              
+              if (duration === 'yearly') {
+                renewalDate.setFullYear(renewalDate.getFullYear() + 1);
+              } else {
+                renewalDate.setMonth(renewalDate.getMonth() + 1);
+              }
+              
+              // Subscription is active if renewal date is in the future
+              return renewalDate > now;
+            }).length;
+
+            if (paymentsResponse.revenue) {
+              totalRevenue = paymentsResponse.revenue.totalRevenue || 0;
+            } else {
+              totalRevenue = allPayments
+                .filter(p => p.status === 'completed')
+                .reduce((sum, p) => sum + (p.amount || 0), 0);
+            }
+          }
+        } catch (paymentsError) {
+          console.error('Error fetching subscription/revenue data:', paymentsError);
+        }
 
         setDashboardStats({
           totalBooks: books.length, 
@@ -74,7 +121,7 @@ export default function Dashboard() {
     { icon: SubscriptionIcon, value: dashboardStats.activeSubscriptions, label: "Active Subscriptions" },
     { icon: DollarIcon, value: `$${dashboardStats.totalRevenue.toLocaleString()}`, label: "Revenue" },
   ];
-  
+
   // Transform API books to display format and show only top 5 and remove the // Kept for future use comment
   const displayBooks = books
     .slice(0, 5)
@@ -122,7 +169,7 @@ export default function Dashboard() {
   };
 
   const handleStatsClick = (label) => {
-    switch(label) {
+    switch (label) {
       case 'Books Published':
         navigate('/books');
         break;
@@ -167,7 +214,7 @@ export default function Dashboard() {
             Let's manage your dashboard effortlessly
           </p>
         </div>
- 
+
         {/* Stats Section */}
         <div className="grid grid-cols-1 sm:grid-cols-4 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
           {stats.map((stat, i) => (
@@ -192,7 +239,7 @@ export default function Dashboard() {
             </div>
           ))}
         </div>
-        
+
         {/* Quick Actions */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
           {quickActions.map((action, index) => (
@@ -209,7 +256,7 @@ export default function Dashboard() {
                   {action.label}
                 </span>
               </div>
-              <div  className="cursor-pointer">
+              <div className="cursor-pointer">
                 <img
                   src={ArrowIcon}
                   alt="Arrow"
@@ -219,17 +266,17 @@ export default function Dashboard() {
             </div>
           ))}
         </div>
- 
+
         {/* Books and Users */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-[18px] ">
           {/* Recent Books */}
- 
+
           <div className="rounded-2xl py-4 px-4 border-common ">
             <div className="flex justify-between items-center mb-2">
               <span className=" font-semibold text-xl">
                 Recent Books
               </span>
-              <span 
+              <span
                 onClick={handleViewAllBooks}
                 className="text-[#0F100B] opacity-60 text-medium cursor-pointer hover:opacity-80 transition-opacity"
               >
@@ -238,61 +285,60 @@ export default function Dashboard() {
             </div>
             {/* Loading State */}
             {isLoading && (
-                <div className="flex justify-center items-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                    <span className="ml-2 text-primary">Loading books...</span>
-                </div>
+              <div className="flex justify-center items-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                <span className="ml-2 text-primary">Loading books...</span>
+              </div>
             )}
 
             {/* Error State - Only show for initial data loading, not for form submissions */}
             {error && (
-                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3x` rounded mb-4">
-                    Error loading books: {error}
-                </div>
+              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3x` rounded mb-4">
+                Error loading books: {error}
+              </div>
             )}
 
             {/* Empty State */}
             {!isLoading && !error && displayBooks.length === 0 && (
-                <div className="text-center py-8">
-                    <p className="text-gray-500">No books found</p>
-                </div>
+              <div className="text-center py-8">
+                <p className="text-gray-500">No books found</p>
+              </div>
             )}
 
             {/* Books List */}
             {!isLoading && !error && displayBooks.length > 0 && (
-                <div>
-                    {displayBooks.map((book, i) => (
-                <div
-                  key={i}
-                  className={`flex items-center py-2 px-3 rounded-lg mb-2 flex-wrap sm:flex-nowrap ${
-                    i % 2 === 0 ? "bg-[#F3F8EC]" : ""
-                  }`}
-                >
-                  <img
-                    src={book.img}
-                    alt={book.title}
-                    className="w-10 h-12 rounded mr-3"
-                  />
-                  <span className="flex-1 font-semibold">
-                    {book.title}
-                  </span>
-                  {book.type === "Free" ? (
-                    <span className="bg-[#0F100B0F] text-[#0F100B] opacity-70 px-3 py-1 rounded-full text-sm font-semibold">
-                      Free
+              <div>
+                {displayBooks.map((book, i) => (
+                  <div
+                    key={i}
+                    className={`flex items-center py-2 px-3 rounded-lg mb-2 flex-wrap sm:flex-nowrap ${i % 2 === 0 ? "bg-[#F3F8EC]" : ""
+                      }`}
+                  >
+                    <img
+                      src={book.img}
+                      alt={book.title}
+                      className="w-10 h-12 rounded mr-3"
+                    />
+                    <span className="flex-1 font-semibold">
+                      {book.title}
                     </span>
-                  ) : (
-                    <span className="inline-flex items-center border border-[#FFAA39] text-[#FFAA39] px-3 py-1 rounded-full gap-[6px] text-sm font-medium min-w-[133px] h-[22px]">
-                      <img src={CrownIcon} alt="Premium badge icon" />
-                      Premium{" "}
-                      <span className="text-black ml-1">{book.price}</span>
-                    </span>
-                  )}
-                </div>
-              ))}
-                </div>
+                    {book.type === "Free" ? (
+                      <span className="bg-[#0F100B0F] text-[#0F100B] opacity-70 px-3 py-1 rounded-full text-sm font-semibold">
+                        Free
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center border border-[#FFAA39] text-[#FFAA39] px-3 py-1 rounded-full gap-[6px] text-sm font-medium min-w-[133px] h-[22px]">
+                        <img src={CrownIcon} alt="Premium badge icon" />
+                        Premium{" "}
+                        <span className="text-black ml-1">{book.price}</span>
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
             )}
           </div>
- 
+
           {/* Latest Users */}
           <div className="w-full max-w-[631px]  mx-auto overflow-hidden">
             <div className=" rounded-2xl px-5 py-4 border-common ">
@@ -300,7 +346,7 @@ export default function Dashboard() {
                 <span className=" font-semibold text-xl">
                   Latest Users
                 </span>
-                <span 
+                <span
                   onClick={handleViewAllUsers}
                   className="text-[#0F100B] opacity-60 text-medium cursor-pointer hover:opacity-80 transition-opacity"
                 >
@@ -309,71 +355,71 @@ export default function Dashboard() {
               </div>
               {/* Users Loading State */}
               {isLoading && (
-                  <div className="flex justify-center items-center py-8">
-                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-                      <span className="ml-2 text-primary text-sm">Loading users...</span>
-                  </div>
+                <div className="flex justify-center items-center py-8">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                  <span className="ml-2 text-primary text-sm">Loading users...</span>
+                </div>
               )}
 
               {/* Users Error State */}
               {error && (
-                  <div className="bg-red-100 border border-red-400 text-red-700 px-3 py-2 rounded text-sm mb-4">
-                      Error loading users: {error}
-                  </div>
+                <div className="bg-red-100 border border-red-400 text-red-700 px-3 py-2 rounded text-sm mb-4">
+                  Error loading users: {error}
+                </div>
               )}
 
               {/* Users Empty State */}
               {!isLoading && !error && users.length === 0 && (
-                  <div className="text-center py-4">
-                      <p className="text-gray-500 text-sm">No users found</p>
-                  </div>
+                <div className="text-center py-4">
+                  <p className="text-gray-500 text-sm">No users found</p>
+                </div>
               )}
 
               {/* Users List */}
               {!isLoading && !error && users.length > 0 && (
-                  <div>
-                      {users.map((user, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center py-2 px-3 border-b rounded-lg mb-0 border-gray-200 last:border-b-0 flex-wrap sm:flex-nowrap"
-                  >
-                    {user.avatar ? (
-                      <img
-                        src={user.avatar}
-                        alt={user.name}
-                        className="w-8 h-8 rounded-full mr-3 object-cover"
-                      />
-                    ) : (
-                      <div className="w-8 h-8 rounded-full mr-3 bg-gray-100 flex items-center justify-center">
-                        <img 
-                          src={ProfileIcon1} 
-                          alt="Default Profile" 
-                          className="w-5 h-5 opacity-60"
+                <div>
+                  {users.map((user, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center py-2 px-3 border-b rounded-lg mb-0 border-gray-200 last:border-b-0 flex-wrap sm:flex-nowrap"
+                    >
+                      {user.avatar ? (
+                        <img
+                          src={user.avatar}
+                          alt={user.name}
+                          className="w-8 h-8 rounded-full mr-3 object-cover"
                         />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full mr-3 bg-gray-100 flex items-center justify-center">
+                          <img
+                            src={ProfileIcon1}
+                            alt="Default Profile"
+                            className="w-5 h-5 opacity-60"
+                          />
+                        </div>
+                      )}
+                      <div className="flex-1">
+                        <div className="font-semibold">
+                          {user.name}
+                        </div>
+                        <div className="text-sm text-gray-500  max-w-[140px] ">
+                          {user.email}
+                        </div>
                       </div>
-                    )}
-                    <div className="flex-1">
-                      <div className="font-semibold">
-                        {user.name}
-                      </div>
-                      <div className="text-sm text-gray-500  max-w-[140px] ">
-                        {user.email}
-                      </div>
+                      {user.type === "Free" ? (
+                        <span className="bg-[#0F100B0F] text-[#0F100B] opacity-70 px-3 py-1 rounded-full text-sm font-semibold">
+                          Free
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center border border-[#FFAA39] text-[#FFAA39] px-2 py-[2px] rounded-full gap-1 text-sm font-medium min-w-[60px] h-[20px] whitespace-nowrap">
+                          {" "}
+                          <img src={CrownIcon} alt="Premium" />
+                          Pro
+                        </span>
+                      )}
                     </div>
-                    {user.type === "Free" ? (
-                      <span className="bg-[#0F100B0F] text-[#0F100B] opacity-70 px-3 py-1 rounded-full text-sm font-semibold">
-                        Free
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center border border-[#FFAA39] text-[#FFAA39] px-2 py-[2px] rounded-full gap-1 text-sm font-medium min-w-[60px] h-[20px] whitespace-nowrap">
-                        {" "}
-                        <img src={CrownIcon} alt="Premium" />
-                        Pro
-                      </span>
-                    )}
-                  </div>
-                ))}
-                  </div>
+                  ))}
+                </div>
               )}
             </div>
           </div>
