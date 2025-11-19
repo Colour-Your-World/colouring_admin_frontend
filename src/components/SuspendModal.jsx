@@ -3,7 +3,17 @@ import closeCircle from '../assets/closeCircle.svg'
 import suspendModal from '../assets/suspendModal.svg'
 import Button from './Button'
 
-const SuspendModal = ({ isOpen, onClose, onSuspend, userName = "this user" }) => {
+const SuspendModal = ({ 
+    isOpen, 
+    onClose, 
+    onSuspend, 
+    onConfirm,
+    userName = "this user",
+    title,
+    message,
+    buttonText,
+    confirmButtonText
+}) => {
     // Prevent body scroll when modal is open
     useEffect(() => {
         if (isOpen) {
@@ -16,8 +26,12 @@ const SuspendModal = ({ isOpen, onClose, onSuspend, userName = "this user" }) =>
         }
     }, [isOpen])
 
-    const handleSuspend = () => {
-        onSuspend()
+    const handleConfirm = () => {
+        if (onConfirm) {
+            onConfirm()
+        } else if (onSuspend) {
+            onSuspend()
+        }
         onClose()
     }
 
@@ -49,12 +63,12 @@ const SuspendModal = ({ isOpen, onClose, onSuspend, userName = "this user" }) =>
 
                     {/* Title */}
                     <h2 className="text-xl font-semibold text-primary text-center mb-3">
-                        Suspend User
+                        {title || 'Suspend User'}
                     </h2>
 
                     {/* Confirmation Message */}
                     <p className="text-sm text-secondary text-center mb-8">
-                        Are you sure you want to suspend {userName}?
+                        {message || `Are you sure you want to suspend ${userName}?`}
                     </p>
 
                     {/* Action Buttons */}
@@ -71,10 +85,10 @@ const SuspendModal = ({ isOpen, onClose, onSuspend, userName = "this user" }) =>
                         <Button
                             type="button"
                             variant="primary"
-                            onClick={handleSuspend}
+                            onClick={handleConfirm}
                             className="px-6 py-2"
                         >
-                            Suspend
+                            {confirmButtonText || buttonText || 'Suspend'}
                         </Button>
                     </div>
                 </div>

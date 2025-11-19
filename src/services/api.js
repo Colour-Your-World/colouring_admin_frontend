@@ -302,6 +302,36 @@ class ApiService {
       method: 'DELETE',
     });
   }
+
+  // Subscription APIs
+  async getAllSubscriptions(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    const endpoint = queryString ? `/payments/subscriptions/all?${queryString}` : '/payments/subscriptions/all';
+    return this.request(endpoint);
+  }
+
+  async cancelSubscription(userId, reason = null) {
+    const body = { userId };
+    if (reason) {
+      body.reason = reason;
+    }
+    return this.request('/payments/subscription/cancel', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  }
+
+  // Payment History APIs
+  async getPaymentHistory(userId = null) {
+    const endpoint = userId ? `/payments/history?userId=${userId}` : '/payments/history';
+    return this.request(endpoint);
+  }
+
+  async getAllPaymentHistory(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    const endpoint = queryString ? `/payments/all?${queryString}` : '/payments/all';
+    return this.request(endpoint);
+  }
 }
 
 // Create and export a singleton instance

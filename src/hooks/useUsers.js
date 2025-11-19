@@ -49,7 +49,8 @@ export const useUsers = (params = {}) => {
       const response = await apiService.getUser(userId);
       
       if (response.success) {
-        return { success: true, data: response.data.user };
+        // Return full response data structure (includes user, subscription, purchasedPlan, etc.)
+        return { success: true, data: response.data };
       }
     } catch (err) {
       setError(err.message);

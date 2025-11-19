@@ -17,20 +17,27 @@ const ManageUsers = () => {
     // Transform API users to match UI format
     const users = apiUsers.map(user => {
         // Determine plan: Admin, subscription plan, or "-"
+        // Try purchasedPlan first (from backend), then subscription.plan, then fallback to "-"
         let planDisplay = '-'
         if (user.role === 'admin') {
             planDisplay = 'Admin'
-        } else if (user.subscription && user.subscription.plan) {
-            // Show plan name and billing cycle (monthly/yearly)
-            const planName = user.subscription.plan.name || 'Plan'
-            const billingCycle = user.subscription.billingCycle || 'monthly'
-            planDisplay = `${planName} (${billingCycle})`
+        } else {
+            const plan = user.purchasedPlan || user.subscription?.plan || null
+            if (plan) {
+                const planName = plan.name || 'Plan'
+                const planPrice = plan.price || 0
+                // Get duration from plan object (monthly/yearly)
+                const billingCycle = plan.duration || user.subscription?.billingCycle || 'monthly'
+                planDisplay = `${planName} - $${planPrice}`
+            }
         }
 
         // Expiry Date: Show subscription end date or "-"
+        // Try subscription.endDate from backend
         let expiryDisplay = '-'
-        if (user.subscription && user.subscription.endDate) {
-            expiryDisplay = new Date(user.subscription.endDate).toLocaleDateString('en-US', {
+        const subscription = user.subscription || null
+        if (subscription && subscription.endDate) {
+            expiryDisplay = new Date(subscription.endDate).toLocaleDateString('en-US', {
                 month: 'short',
                 day: 'numeric',
                 year: 'numeric'
@@ -50,9 +57,10 @@ const ManageUsers = () => {
         }
 
         // Purchases: Show actual purchased books count
-        const purchasesDisplay = user.purchasedBooks?.length 
-            ? `${user.purchasedBooks.length} Books` 
-            : '0 Books'
+        const booksCount = user.booksPurchasedCount !== undefined 
+            ? user.booksPurchasedCount 
+            : (user.purchasedBooks?.length || 0)
+        const purchasesDisplay = `${booksCount} Books`
 
         return {
             id: user._id,

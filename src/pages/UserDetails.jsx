@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation, useParams } from 'react-router-dom'
 import { useUsers } from '../hooks/useUsers'
+import apiService from '../services/api'
 import arrowLeft from '../assets/arrowLeft.svg'
 import calendar from '../assets/calendar.svg'
 import threeDot from '../assets/3Dot.svg'
@@ -20,6 +21,7 @@ const UserDetails = () => {
     
     const [user, setUser] = useState(location.state?.user || null)
     const [isLoading, setIsLoading] = useState(false)
+    const [error, setError] = useState(null)
     const [accountStatus, setAccountStatus] = useState(true)
     const [isDropdownOpen, setIsDropdownOpen] = useState(false)
     const [isSuspendModalOpen, setIsSuspendModalOpen] = useState(false)
@@ -32,29 +34,64 @@ const UserDetails = () => {
     const dropdownRef = useRef(null)
     const planDropdownRef = useRef(null)
 
-    // Fetch user data if not available in location state
+    // Always fetch user data from API to get complete details (subscription, purchasedPlan, etc.)
     useEffect(() => {
         const fetchUserData = async () => {
-            if (!user && userId) {
+            if (userId) {
                 setIsLoading(true)
-                const result = await getUser(userId)
-                if (result.success) {
-                    const userData = result.data
+                setError(null)
+                try {
+                    const result = await getUser(userId)
+                    if (result && result.success && result.data) {
+                        const userData = result.data.user
+                        const subscriptionData = result.data.subscription || null
+                        const purchasedPlan = result.data.purchasedPlan || null
+                        const booksPurchasedCount = result.data.booksPurchasedCount || 0
+                        
+                        // Check if userData exists
+                        if (!userData) {
+                            setError('User not found')
+                            setIsLoading(false)
+                            return
+                        }
                     
-                    // Determine plan display
+                    // Determine plan display and subscription details
+                    // Use purchasedPlan from API if available, otherwise use subscription.plan
+                    const plan = purchasedPlan || subscriptionData?.plan || null
+                    
                     let planDisplay = '-'
                     let planPrice = '-'
+                    let nextBillingDate = null
+                    let planDuration = null
+                    
                     if (userData.role === 'admin') {
                         planDisplay = 'Admin'
                         planPrice = 'N/A'
-                    } else if (userData.subscription && userData.subscription.plan) {
-                        planDisplay = userData.subscription.plan.name || 'Plan'
-                        planPrice = `$${userData.subscription.plan.price || 0}`
+                    } else if (plan) {
+                        planDisplay = plan.name || 'Plan'
+                        planPrice = `$${plan.price || 0}`
+                        planDuration = plan.duration || 'monthly'
+                        
+                        // Calculate next billing date - use endDate as next billing
+                        if (subscriptionData && subscriptionData.endDate) {
+                            const endDate = new Date(subscriptionData.endDate)
+                            nextBillingDate = endDate.toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric'
+                            })
+                        }
                     }
                     
-                    // Last Active
+                    // Last Active - use lastLogin if available, otherwise lastLogout
                     let lastActiveDisplay = 'Never'
-                    if (userData.lastLogout) {
+                    if (userData.lastLogin) {
+                        lastActiveDisplay = new Date(userData.lastLogin).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric'
+                        })
+                    } else if (userData.lastLogout) {
                         lastActiveDisplay = new Date(userData.lastLogout).toLocaleDateString('en-US', {
                             month: 'short',
                             day: 'numeric',
@@ -64,23 +101,33 @@ const UserDetails = () => {
                     
                     // Start Date
                     let startDateDisplay = '-'
-                    if (userData.subscription && userData.subscription.startDate) {
-                        startDateDisplay = new Date(userData.subscription.startDate).toLocaleDateString('en-US', {
+                    // Check subscriptionData first, then fallback to null check
+                    if (subscriptionData) {
+                        if (subscriptionData.startDate) {
+                            try {
+                                startDateDisplay = new Date(subscriptionData.startDate).toLocaleDateString('en-US', {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    year: 'numeric'
+                                })
+                            } catch (e) {
+                                startDateDisplay = '-'
+                            }
+                        }
+                    }
+                    
+                    // Expiry Date / End Date
+                    let expiryDateDisplay = '-'
+                    if (subscriptionData && subscriptionData.endDate) {
+                        expiryDateDisplay = new Date(subscriptionData.endDate).toLocaleDateString('en-US', {
                             month: 'short',
                             day: 'numeric',
                             year: 'numeric'
                         })
                     }
                     
-                    // Expiry Date
-                    let expiryDateDisplay = '-'
-                    if (userData.subscription && userData.subscription.endDate) {
-                        expiryDateDisplay = new Date(userData.subscription.endDate).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric'
-                        })
-                    }
+                    // Get billing cycle from plan duration
+                    const billingCycle = plan?.duration || planDuration || 'monthly'
                     
                     setUser({
                         id: userData._id,
@@ -88,81 +135,138 @@ const UserDetails = () => {
                         email: userData.email,
                         plan: planDisplay,
                         planPrice: planPrice,
-                        billingCycle: userData.subscription?.billingCycle || 'monthly',
+                        billingCycle: billingCycle,
                         startDate: startDateDisplay,
                         expiryDate: expiryDateDisplay,
-                        purchases: userData.purchasedBooks?.length ? `${userData.purchasedBooks.length} Books` : '0 Books',
+                        nextBillingDate: nextBillingDate || expiryDateDisplay, // Fallback to expiryDate for Next Billing Date display
+                        purchases: `${booksPurchasedCount} Books`,
                         lastActive: lastActiveDisplay,
                         avatar: userData.profilePhoto || null
                     })
-                    setAccountStatus(userData.isActive)
+                    setAccountStatus(userData.isActive || false)
+                    } else {
+                        setError('Failed to fetch user data')
+                    }
+                } catch (err) {
+                    setError(err.message || 'Failed to fetch user data')
+                } finally {
+                    setIsLoading(false)
                 }
-                setIsLoading(false)
             }
         }
         fetchUserData()
     }, [userId])
 
 
-    // Sample data for purchases
-    const purchases = [
-        {
-            id: 1,
-            title: "African Safari Adventures",
-            price: "$4.99",
-            purchaseDate: "15 Feb 2025",
-            thumbnail: "/api/placeholder/60/80",
-            date: "15 Feb 2025"
-        },
-        {
-            id: 2,
-            title: "Ocean Life",
-            price: "$3.99",
-            purchaseDate: "22 Mar 2025",
-            thumbnail: "/api/placeholder/60/80",
-            date: "22 Mar 2025"
-        },
-        {
-            id: 3,
-            title: "African Safari Adventures",
-            price: "$4.99",
-            purchaseDate: "15 Feb 2025",
-            thumbnail: "/api/placeholder/60/80",
-            date: "15 Feb 2025"
-        }
-    ]
+    // Purchases and payment history state
+    const [purchases, setPurchases] = useState([])
+    const [paymentHistory, setPaymentHistory] = useState([])
+    const [isLoadingPaymentHistory, setIsLoadingPaymentHistory] = useState(false)
 
-    // Sample data for payment history
-    const paymentHistory = [
-        {
-            id: 1,
-            date: "15 Feb 2025",
-            transactionId: "TXN-12345",
-            method: "Apple Pay",
-            amount: "$4.99",
-            status: "Success"
-        },
-        {
-            id: 2,
-            date: "22 Mar 2025",
-            transactionId: "TXN-67890",
-            method: "NetBanking",
-            amount: "$3.99",
-            status: "Success"
-        },
-        {
-            id: 3,
-            date: "15 Feb 2025",
-            transactionId: "TXN-54321",
-            method: "Card (Visa)",
-            amount: "$39.99",
-            status: "Success"
-        }
-    ]
+    // Fetch payment history for the user
+    useEffect(() => {
+        const fetchPaymentHistory = async () => {
+            if (userId) {
+                try {
+                    setIsLoadingPaymentHistory(true)
+                    const response = await apiService.getPaymentHistory(userId)
+                    
+                    if (response.success && response.data && response.data.payments) {
+                        // Transform API response to match UI format
+                        const transformedPayments = response.data.payments.map(payment => {
+                            // Format date
+                            const paymentDate = new Date(payment.createdAt).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric'
+                            })
 
-    const totalSpend = purchases.reduce((total, purchase) => {
-        return total + parseFloat(purchase.price.replace('$', ''))
-    }, 0)
+                            // Format amount with currency
+                            const amount = payment.amount ? `$${payment.amount.toFixed(2)}` : '$0.00'
+
+                            // Determine method display
+                            let method = 'N/A'
+                            if (payment.type === 'subscription' && payment.plan) {
+                                method = payment.paymentMethod ? 'Credit Card (Subscription)' : 'Subscription'
+                            } else if (payment.type === 'book' && payment.book) {
+                                method = payment.paymentMethod ? 'Credit Card (Book)' : 'Book Purchase'
+                            } else if (payment.paymentMethod) {
+                                method = 'Credit Card'
+                            }
+
+                            // Transaction ID - use Stripe Payment Intent ID if available, otherwise use payment _id
+                            const transactionId = payment.stripePaymentIntentId 
+                                ? payment.stripePaymentIntentId.substring(0, 20) + '...' 
+                                : payment._id?.toString().substring(0, 12) || 'N/A'
+
+                            // Status
+                            const status = payment.status === 'completed' ? 'Success' : 
+                                         payment.status === 'pending' ? 'Pending' : 
+                                         payment.status === 'failed' ? 'Failed' : 'Success'
+
+                            return {
+                                id: payment._id,
+                                date: paymentDate,
+                                transactionId: transactionId,
+                                method: method,
+                                amount: amount,
+                                status: status,
+                                type: payment.type || 'unknown',
+                                plan: payment.plan || null,
+                                book: payment.book || null
+                            }
+                        })
+
+                        setPaymentHistory(transformedPayments)
+
+                        // Transform book purchases for purchases section
+                        const bookPurchases = response.data.payments
+                            .filter(p => p.type === 'book' && p.book && p.status === 'completed')
+                            .map(payment => {
+                                const purchaseDate = new Date(payment.createdAt).toLocaleDateString('en-US', {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    year: 'numeric'
+                                })
+
+                                const coverImage = payment.book?.coverImage || null
+                                
+                                return {
+                                    id: payment._id,
+                                    title: payment.book.name || 'Book',
+                                    price: payment.amount ? `$${payment.amount.toFixed(2)}` : '$0.00',
+                                    purchaseDate: purchaseDate,
+                                    date: purchaseDate,
+                                    thumbnail: coverImage
+                                }
+                            })
+
+                        setPurchases(bookPurchases)
+                    } else {
+                        setPaymentHistory([])
+                        setPurchases([])
+                    }
+                } catch (err) {
+                    setError('Failed to fetch payment history')
+                    setPaymentHistory([])
+                    setPurchases([])
+                } finally {
+                    setIsLoadingPaymentHistory(false)
+                }
+            }
+        }
+
+        fetchPaymentHistory()
+    }, [userId])
+
+    // Calculate total spend from payment history
+    const totalSpend = paymentHistory
+        .filter(p => p.status === 'Success')
+        .reduce((total, payment) => {
+            const amountString = payment.amount.replace(/[^\d.]/g, '')
+            const amount = parseFloat(amountString) || 0
+            return total + amount
+        }, 0)
 
     const handleDropdownToggle = () => {
         setIsDropdownOpen(!isDropdownOpen)
@@ -180,7 +284,6 @@ const UserDetails = () => {
 
     const handleExportReport = () => {
         setIsDropdownOpen(false)
-        console.log('Export user report clicked')
     }
 
     const handleConfirmSuspend = async () => {
@@ -217,7 +320,6 @@ const UserDetails = () => {
                 alert(result.error || 'Failed to delete user. Please try again.')
             }
         } catch (error) {
-            console.error('Delete user error:', error)
             alert('Failed to delete user. Please try again.')
         } finally {
             setIsDeleting(false)
@@ -238,19 +340,105 @@ const UserDetails = () => {
 
         try {
             setIsCancelling(true)
-            // TODO: Add API call to cancel subscription
-            // const result = await cancelSubscription(user.id)
-            // if (result.success) {
-            //     setIsCancelSubscriptionModalOpen(false)
-            //     // Update user data or navigate
-            // } else {
-            //     alert('Failed to cancel subscription. Please try again.')
-            // }
-            console.log('Cancel subscription for:', user.name)
-            setIsCancelSubscriptionModalOpen(false)
-            // For now, just close the modal
+            const response = await apiService.cancelSubscription(user.id)
+            
+            if (response.success) {
+                setIsCancelSubscriptionModalOpen(false)
+                // Refresh user data to reflect cancelled subscription
+                const result = await getUser(userId)
+                if (result && result.success && result.data) {
+                    const userData = result.data.user
+                    const subscriptionData = result.data.subscription || null
+                    const purchasedPlan = result.data.purchasedPlan || null
+                    
+                    if (userData) {
+                        const plan = purchasedPlan || subscriptionData?.plan || null
+                        
+                        let planDisplay = '-'
+                        let planPrice = '-'
+                        let nextBillingDate = null
+                        let planDuration = null
+                        
+                        if (userData.role === 'admin') {
+                            planDisplay = 'Admin'
+                            planPrice = 'N/A'
+                        } else if (plan) {
+                            planDisplay = plan.name || 'Plan'
+                            planPrice = `$${plan.price || 0}`
+                            planDuration = plan.duration || 'monthly'
+                            
+                            if (subscriptionData && subscriptionData.endDate) {
+                                const endDate = new Date(subscriptionData.endDate)
+                                nextBillingDate = endDate.toLocaleDateString('en-US', {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    year: 'numeric'
+                                })
+                            }
+                        }
+                        
+                        let lastActiveDisplay = 'Never'
+                        if (userData.lastLogin) {
+                            lastActiveDisplay = new Date(userData.lastLogin).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric'
+                            })
+                        } else if (userData.lastLogout) {
+                            lastActiveDisplay = new Date(userData.lastLogout).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric'
+                            })
+                        }
+                        
+                        let startDateDisplay = '-'
+                        if (subscriptionData) {
+                            if (subscriptionData.startDate) {
+                                try {
+                                    startDateDisplay = new Date(subscriptionData.startDate).toLocaleDateString('en-US', {
+                                        month: 'short',
+                                        day: 'numeric',
+                                        year: 'numeric'
+                                    })
+                                } catch (e) {
+                                    startDateDisplay = '-'
+                                }
+                            }
+                        }
+                        
+                        let expiryDateDisplay = '-'
+                        if (subscriptionData && subscriptionData.endDate) {
+                            expiryDateDisplay = new Date(subscriptionData.endDate).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric'
+                            })
+                        }
+                        
+                        const billingCycle = plan?.duration || planDuration || 'monthly'
+                        
+                        setUser({
+                            id: userData._id,
+                            name: userData.name,
+                            email: userData.email,
+                            plan: planDisplay,
+                            planPrice: planPrice,
+                            billingCycle: billingCycle,
+                            startDate: startDateDisplay,
+                            expiryDate: expiryDateDisplay,
+                            nextBillingDate: nextBillingDate || expiryDateDisplay,
+                            purchases: `${result.data.booksPurchasedCount || 0} Books`,
+                            lastActive: lastActiveDisplay,
+                            avatar: userData.profilePhoto || null
+                        })
+                    }
+                }
+            } else {
+                setError(response.message || 'Failed to cancel subscription')
+            }
         } catch (error) {
-            alert('Failed to cancel subscription. Please try again.')
+            setError('Failed to cancel subscription. Please try again.')
         } finally {
             setIsCancelling(false)
         }
@@ -292,6 +480,20 @@ const UserDetails = () => {
         }
     }, [isDropdownOpen, isPlanDropdownOpen])
 
+    // Show loading state
+    if (isLoading || !user) {
+        return (
+            <div className="min-h-screen bg-[#FBFFF5]">
+                <Header />
+                <div className="mx-auto px-4 py-6 max-w-7xl">
+                    <div className="flex items-center justify-center py-12">
+                        <div className="text-secondary">Loading user details...</div>
+                    </div>
+                </div>
+            </div>
+        )
+    }
+
     return (
         <div className="min-h-screen bg-[#FBFFF5]">
             {/* Header */}
@@ -307,7 +509,7 @@ const UserDetails = () => {
                         className="w-6 h-6 cursor-pointer"
                         onClick={() => navigate(-1)}
                     />
-                    <h1 className="text-xl font-semibold text-primary sm:text-2xl">{user.name}</h1>
+                    <h1 className="text-xl font-semibold text-primary sm:text-2xl">{user?.name || 'User Details'}</h1>
                 </div>
                 {/* User Information Card */}
                 <div className="px-2 py-4 mb-4 sm:mb-6">
@@ -317,7 +519,7 @@ const UserDetails = () => {
                                 {user?.avatar ? (
                                     <img 
                                         src={user.avatar} 
-                                        alt={user.name}
+                                        alt={user?.name || 'User'}
                                         className="w-full h-full object-cover"
                                     />
                                 ) : (
@@ -391,7 +593,7 @@ const UserDetails = () => {
                         <h3 className="text-xs sm:text-sm font-semibold text-secondary">CURRENT PLAN</h3>
                         <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                             <div className="text-xs sm:text-sm text-secondary">
-                                Next Billing Date: <span className="font-medium text-primary">{user?.expiryDate || '-'}</span>
+                                Next Billing Date: <span className="font-medium text-primary">{user?.nextBillingDate || user?.expiryDate || '-'}</span>
                             </div>
                             <div className="relative" ref={planDropdownRef}>
                                 <img 
@@ -449,19 +651,38 @@ const UserDetails = () => {
                         <span className="text-xs sm:text-sm text-secondary">Total Spend: <span className="font-medium text-primary">${totalSpend.toFixed(2)}</span></span>
                     </div>
                     <div className="space-y-3 sm:space-y-4">
-                        {purchases.map((purchase, index) => (
-                            <div key={purchase.id} className={`flex items-center gap-3 sm:gap-4 p-2 sm:p-3 ${index !== purchases.length - 1 ? 'border-b border-[#0F100B]/10' : ''}`}>
-                                <div className="w-10 h-12 sm:w-12 sm:h-16 bg-gray-300 rounded flex items-center justify-center">
-                                    <span className="text-xs text-gray-600">Book</span>
-                                </div>
-                                <div className="flex-1">
-                                    <h4 className="text-xs sm:text-sm font-medium text-primary">{purchase.title}</h4>
-                                    <p className="text-xs text-secondary">Purchased: {purchase.purchaseDate}</p>
-                                </div>
-                                <div className="text-xs sm:text-sm font-medium text-primary">{purchase.price}</div>
-                                <div className="text-xs sm:text-sm text-secondary">Purchased: {purchase.date}</div>
+                        {purchases.length === 0 ? (
+                            <div className="text-center py-8">
+                                <div className="text-sm text-secondary">No purchases found</div>
                             </div>
-                        ))}
+                        ) : (
+                            purchases.map((purchase, index) => (
+                                <div key={purchase.id} className={`flex items-center gap-3 sm:gap-4 p-2 sm:p-3 ${index !== purchases.length - 1 ? 'border-b border-[#0F100B]/10' : ''}`}>
+                                    <div className="w-10 h-12 sm:w-12 sm:h-16 bg-gray-300 rounded overflow-hidden flex-shrink-0">
+                                        {purchase.thumbnail ? (
+                                            <img 
+                                                src={purchase.thumbnail} 
+                                                alt={purchase.title} 
+                                                className="w-full h-full object-cover"
+                                                onError={(e) => {
+                                                    e.target.style.display = 'none';
+                                                    e.target.parentElement.innerHTML = '<span class="text-xs text-gray-600 flex items-center justify-center h-full">Book</span>';
+                                                }}
+                                            />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center">
+                                                <span className="text-xs text-gray-600">Book</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <h4 className="text-xs sm:text-sm font-medium text-primary truncate">{purchase.title}</h4>
+                                        <p className="text-xs text-secondary">Purchased: {purchase.purchaseDate}</p>
+                                    </div>
+                                    <div className="text-xs sm:text-sm font-medium text-primary whitespace-nowrap">{purchase.price}</div>
+                                </div>
+                            ))
+                        )}
                     </div>
                 </div>
 
@@ -469,67 +690,82 @@ const UserDetails = () => {
                 <div className="rounded-2xl border-common p-4 sm:p-6">
                     <h3 className="text-base sm:text-lg font-semibold text-primary mb-3 sm:mb-4">Payment History</h3>
                     <div className="overflow-x-auto">
-                        <table className="w-full">
-                            <thead>
-                                <tr className="bg-[#F3F8EC]">
-                                    <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs text-primary uppercase tracking-wider rounded-l-xl">
-                                        Date
-                                    </th>
-                                    <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs text-primary uppercase tracking-wider">
-                                        Transaction ID
-                                    </th>
-                                    <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs text-primary uppercase tracking-wider">
-                                        Method
-                                    </th>
-                                    <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs text-primary uppercase tracking-wider">
-                                        Amount
-                                    </th>
-                                    <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs text-primary uppercase tracking-wider rounded-r-xl">
-                                        Status
-                                    </th>
-                                </tr>
-                            </thead>
-
-
-                            <tbody>
-                                {paymentHistory.map((payment, index) => (
-                                    <tr key={payment.id}>
-                                        <td
-                                            className={`px-2 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-secondary ${index % 2 === 1 ? 'bg-[#F3F8EC] rounded-l-xl' : ''
-                                                }`}
-                                        >
-                                            {payment.date}
-                                        </td>
-                                        <td
-                                            className={`px-4 py-4 whitespace-nowrap text-sm text-secondary ${index % 2 === 1 ? 'bg-[#F3F8EC]' : ''
-                                                }`}
-                                        >
-                                            {payment.transactionId}
-                                        </td>
-                                        <td
-                                            className={`px-4 py-4 whitespace-nowrap text-sm text-secondary ${index % 2 === 1 ? 'bg-[#F3F8EC]' : ''
-                                                }`}
-                                        >
-                                            {payment.method}
-                                        </td>
-                                        <td
-                                            className={`px-2 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-secondary ${index % 2 === 1 ? 'bg-[#F3F8EC]' : ''
-                                                }`}
-                                        >
-                                            {payment.amount}
-                                        </td>
-                                        <td
-                                            className={`px-2 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-secondary ${index % 2 === 1 ? 'bg-[#F3F8EC] rounded-r-xl' : ''
-                                                }`}
-                                        >
-                                            <span className="text-[#18A73C] bg-[#18A73C1A] px-2 py-1 rounded-full">{payment.status}</span>
-                                        </td>
+                        {isLoadingPaymentHistory ? (
+                            <div className="text-center py-8">
+                                <div className="text-sm text-secondary">Loading payment history...</div>
+                            </div>
+                        ) : paymentHistory.length === 0 ? (
+                            <div className="text-center py-8">
+                                <div className="text-sm text-secondary">No payment history found</div>
+                            </div>
+                        ) : (
+                            <table className="w-full">
+                                <thead>
+                                    <tr className="bg-[#F3F8EC]">
+                                        <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs text-primary uppercase tracking-wider rounded-l-xl">
+                                            Date
+                                        </th>
+                                        <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs text-primary uppercase tracking-wider">
+                                            Transaction ID
+                                        </th>
+                                        <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs text-primary uppercase tracking-wider">
+                                            Method
+                                        </th>
+                                        <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs text-primary uppercase tracking-wider">
+                                            Amount
+                                        </th>
+                                        <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs text-primary uppercase tracking-wider rounded-r-xl">
+                                            Status
+                                        </th>
                                     </tr>
-                                ))}
-                            </tbody>
+                                </thead>
 
-
-                        </table>
+                                <tbody>
+                                    {paymentHistory.map((payment, index) => (
+                                        <tr key={payment.id}>
+                                            <td
+                                                className={`px-2 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-secondary ${index % 2 === 1 ? 'bg-[#F3F8EC] rounded-l-xl' : ''
+                                                    }`}
+                                            >
+                                                {payment.date}
+                                            </td>
+                                            <td
+                                                className={`px-4 py-4 whitespace-nowrap text-sm text-secondary ${index % 2 === 1 ? 'bg-[#F3F8EC]' : ''
+                                                    }`}
+                                            >
+                                                {payment.transactionId}
+                                            </td>
+                                            <td
+                                                className={`px-4 py-4 whitespace-nowrap text-sm text-secondary ${index % 2 === 1 ? 'bg-[#F3F8EC]' : ''
+                                                    }`}
+                                            >
+                                                {payment.method}
+                                            </td>
+                                            <td
+                                                className={`px-2 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-secondary ${index % 2 === 1 ? 'bg-[#F3F8EC]' : ''
+                                                    }`}
+                                            >
+                                                {payment.amount}
+                                            </td>
+                                            <td
+                                                className={`px-2 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-secondary ${index % 2 === 1 ? 'bg-[#F3F8EC] rounded-r-xl' : ''
+                                                    }`}
+                                            >
+                                                <span className={`px-2 py-1 rounded-full text-xs ${
+                                                    payment.status === 'Success' 
+                                                        ? 'text-[#18A73C] bg-[#18A73C1A]'
+                                                        : payment.status === 'Pending'
+                                                        ? 'text-yellow-600 bg-yellow-100'
+                                                        : 'text-red-600 bg-red-100'
+                                                }`}>
+                                                    {payment.status}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        )}
                     </div>
                 </div>
 
