@@ -5,7 +5,6 @@ import apiService from '../services/api'
 import arrowLeft from '../assets/arrowLeft.svg'
 import calendar from '../assets/calendar.svg'
 import threeDot from '../assets/3Dot.svg'
-import exportIcon from '../assets/export.svg'
 import deleteUser from '../assets/deleteUser.svg'
 import profileIcon from '../assets/profile2.svg'
 import SuspendModal from '../components/SuspendModal'
@@ -32,7 +31,6 @@ const UserDetails = () => {
     const dropdownRef = useRef(null)
     const planDropdownRef = useRef(null)
 
-    // Always fetch user data from API to get complete details (subscription, purchasedPlan, etc.)
     useEffect(() => {
         const fetchUserData = async () => {
             if (userId) {
@@ -46,15 +44,12 @@ const UserDetails = () => {
                         const purchasedPlan = result.data.purchasedPlan || null
                         const booksPurchasedCount = result.data.booksPurchasedCount || 0
                         
-                        // Check if userData exists
                         if (!userData) {
                             setError('User not found')
                             setIsLoading(false)
                             return
                         }
                     
-                    // Determine plan display and subscription details
-                    // Use purchasedPlan from API if available, otherwise use subscription.plan
                     const plan = purchasedPlan || subscriptionData?.plan || null
                     
                     let planDisplay = '-'
@@ -70,7 +65,6 @@ const UserDetails = () => {
                         planPrice = `$${plan.price || 0}`
                         planDuration = plan.duration || 'monthly'
                         
-                        // Calculate next billing date - use endDate as next billing
                         if (subscriptionData && subscriptionData.endDate) {
                             const endDate = new Date(subscriptionData.endDate)
                             nextBillingDate = endDate.toLocaleDateString('en-US', {
@@ -111,7 +105,6 @@ const UserDetails = () => {
                         }
                     }
                     
-                    // Expiry Date / End Date
                     let expiryDateDisplay = '-'
                     if (subscriptionData && subscriptionData.endDate) {
                         expiryDateDisplay = new Date(subscriptionData.endDate).toLocaleDateString('en-US', {
@@ -267,10 +260,6 @@ const UserDetails = () => {
     const handleDeleteAccount = () => {
         setIsDropdownOpen(false)
         setIsDeleteModalOpen(true)
-    }
-
-    const handleExportReport = () => {
-        setIsDropdownOpen(false)
     }
 
     const handleConfirmSuspend = async () => {
@@ -431,12 +420,6 @@ const UserDetails = () => {
             icon: deleteUser,
             action: handleDeleteAccount
         },
-        {
-            id: 'export',
-            label: 'Export User Report',
-            icon: exportIcon,
-            action: handleExportReport
-        }
     ]
 
     // Handle click outside to close dropdowns
