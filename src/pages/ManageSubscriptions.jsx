@@ -95,8 +95,10 @@ const ManageSubscriptions = () => {
                     const isBook = payment.type === 'book'
                     let planDisplay = ''
                     let renewalDateFormatted = '-'
+                    let renewalDate = null
                     let duration = null
                     let planDuration = null
+                    const subscriptionInfo = payment.subscription || null
 
                     if (isBook && payment.book) {
                         // Book payment
@@ -109,19 +111,25 @@ const ManageSubscriptions = () => {
                         // Subscription payment
                         const planName = payment.plan.name || 'Plan'
                         const planPrice = payment.plan.price || payment.amount || 0
-                        duration = payment.plan.duration || 'monthly'
-                        planDuration = duration
-                        planDisplay = duration === 'yearly' 
+                        const normalizedDuration = (payment.plan.duration || 'monthly').toLowerCase()
+                        duration = normalizedDuration
+                        planDuration = normalizedDuration
+                        planDisplay = normalizedDuration === 'yearly' 
                             ? `Yearly • $${planPrice}`
                             : `Monthly • $${planPrice}`
                         
-                        // Calculate renewal date based on plan duration
-                        const renewalDate = new Date(paymentDate)
-                        if (duration === 'yearly') {
-                            renewalDate.setFullYear(renewalDate.getFullYear() + 1)
+                        // Calculate renewal date using backend subscription end date if available
+                        if (subscriptionInfo && subscriptionInfo.endDate) {
+                            renewalDate = new Date(subscriptionInfo.endDate)
                         } else {
-                            renewalDate.setMonth(renewalDate.getMonth() + 1)
+                            renewalDate = new Date(paymentDate)
+                            if (normalizedDuration === 'yearly') {
+                                renewalDate.setFullYear(renewalDate.getFullYear() + 1)
+                            } else {
+                                renewalDate.setMonth(renewalDate.getMonth() + 1)
+                            }
                         }
+
                         renewalDateFormatted = renewalDate.toLocaleDateString('en-GB', {
                             day: 'numeric',
                             month: 'short',
@@ -138,14 +146,8 @@ const ManageSubscriptions = () => {
                             // For subscriptions, check if still active based on renewal date
                             const now = new Date()
                             if (payment.plan) {
-                                const renewalDate = new Date(paymentDate)
-                                const duration = payment.plan.duration || 'monthly'
-                                if (duration === 'yearly') {
-                                    renewalDate.setFullYear(renewalDate.getFullYear() + 1)
-                                } else {
-                                    renewalDate.setMonth(renewalDate.getMonth() + 1)
-                                }
-                                const isExpired = renewalDate < now
+                                const subscriptionEnd = renewalDate || new Date(paymentDate)
+                                const isExpired = subscriptionEnd < now && payment.status === 'completed'
                                 statusDisplay = isExpired ? 'Expired' : 'Active'
                             }
                         }
@@ -163,18 +165,12 @@ const ManageSubscriptions = () => {
                     let isExpired = false
                     if (!isBook && payment.plan) {
                         const now = new Date()
-                        const renewalDate = new Date(paymentDate)
-                        const duration = payment.plan.duration || 'monthly'
-                        if (duration === 'yearly') {
-                            renewalDate.setFullYear(renewalDate.getFullYear() + 1)
-                        } else {
-                            renewalDate.setMonth(renewalDate.getMonth() + 1)
-                        }
-                        const diffMs = renewalDate - now
+                        const subscriptionEnd = renewalDate || new Date(paymentDate)
+                        const diffMs = subscriptionEnd - now
                         daysRemaining = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
                         daysRemaining = daysRemaining > 0 ? daysRemaining : 0
                         daysOverdue = daysRemaining < 0 ? Math.abs(daysRemaining) : 0
-                        isExpired = renewalDate < now && payment.status === 'completed'
+                        isExpired = subscriptionEnd < now && payment.status === 'completed'
                     }
 
                     return {
