@@ -4,6 +4,7 @@ import AddBookModal from "../components/AddBookModal";
 import { useBooks } from "../hooks/useBooks";
 import { useAuth } from "../contexts/AuthContext";
 import apiService from "../services/api";
+import { getBookCoverImage } from "../utils/bookUtils";
 import BookIcon from "../assets/books.svg";
 import ProfileIcon from "../assets/profile.svg";
 import SubscriptionIcon from "../assets/subscriptions.svg";
@@ -144,13 +145,16 @@ export default function Dashboard() {
   // Transform API books to display format and show only top 5 and remove the // Kept for future use comment
   const displayBooks = books
     .slice(0, 5)
-    .map(book => ({
-      img: book.coverImage || DailyActivities,
-      title: book.name,
-      type: book.type === 'free' ? 'Free' : 'Premium',
-      price: book.type === 'premium' ? `$${book.price}` : null,
-      id: book._id
-    }));
+    .map(book => {
+      const coverImage = getBookCoverImage(book);
+      return {
+        img: coverImage || DailyActivities,
+        title: book.name,
+        type: book.type === 'free' ? 'Free' : 'Premium',
+        price: book.type === 'premium' ? `$${book.price}` : null,
+        id: book._id
+      };
+    });
 
   const handleAddNewBook = () => {
     setIsAddBookModalOpen(true);

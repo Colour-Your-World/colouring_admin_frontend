@@ -11,6 +11,7 @@ import profile from '../assets/profile.svg'
 import dollor from '../assets/dollor.svg'
 import eye from '../assets/eye.svg'
 import profileUser from '../assets/profileUser.svg'
+import { getBookCoverImage } from '../utils/bookUtils'
 
 const ManageSubscriptions = () => {
     const navigate = useNavigate()
@@ -192,7 +193,7 @@ const ManageSubscriptions = () => {
                         daysRemaining: daysRemaining,
                         daysOverdue: daysOverdue,
                         isBook: isBook,
-                        bookCover: payment.book?.coverImage || null,
+                        bookCover: getBookCoverImage(payment.book) || null,
                         originalData: payment
                     }
                 })

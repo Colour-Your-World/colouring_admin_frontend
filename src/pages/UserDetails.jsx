@@ -9,6 +9,7 @@ import deleteUser from '../assets/deleteUser.svg'
 import profileIcon from '../assets/profile2.svg'
 import SuspendModal from '../components/SuspendModal'
 import DeleteModal from '../components/DeleteModal'
+import { getBookCoverImage } from '../utils/bookUtils'
 
 const UserDetails = () => {
     const navigate = useNavigate()
@@ -216,7 +217,7 @@ const UserDetails = () => {
                                     year: 'numeric'
                                 })
 
-                                const coverImage = payment.book?.coverImage || null
+                                const coverImage = getBookCoverImage(payment.book) || null
                                 
                                 return {
                                     id: payment._id,

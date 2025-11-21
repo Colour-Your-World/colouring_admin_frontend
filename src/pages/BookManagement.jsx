@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import BookList from '../components/BookList'
 import Pagination from '../components/Pagination'
 import Button from '../components/Button'
@@ -8,6 +8,7 @@ import magnifier from '../assets/magnifier.svg'
 import plusIcon from '../assets/addCircle.svg'
 import { useNavigate } from 'react-router-dom'
 import { useBooks } from '../hooks/useBooks'
+import { getBookCoverImage } from '../utils/bookUtils'
 
 const BookManagement = () => {
     const [searchTerm, setSearchTerm] = useState('')
@@ -20,15 +21,18 @@ const BookManagement = () => {
     const { books, loading, error, createBook, fetchBooks } = useBooks()
 
     // Transform API data to match component expectations
-    const transformedBooks = books.map(book => ({
-        id: book._id,
-        title: book.name,
-        cover: book.coverImage || "/api/placeholder/60/80",
-        status: book.isActive ? "active" : "inactive",
-        isActive: book.isActive, // Keep original field for filtering
-        type: book.type,
-        price: book.price || null
-    }))
+    const transformedBooks = books.map(book => {
+        const coverImage = getBookCoverImage(book)
+        return {
+            id: book._id,
+            title: book.name,
+            cover: coverImage || "/api/placeholder/60/80",
+            status: book.isActive ? "active" : "inactive",
+            isActive: book.isActive, // Keep original field for filtering
+            type: book.type,
+            price: book.price || null
+        }
+    })
 
     const filteredBooks = transformedBooks.filter(book => {
         const matchesSearch = book.title.toLowerCase().includes(searchTerm.toLowerCase())

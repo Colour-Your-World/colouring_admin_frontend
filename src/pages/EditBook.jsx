@@ -14,6 +14,9 @@ import clip2 from '../assets/clip2.svg'
 import backArrow from '../assets/arrowLeft.svg'
 import closeCircle from '../assets/closeCircle.svg'
 import apiService from '../services/api'
+import { DEFAULT_PDF_PAGE_LIMIT, getBookPageUrl, getBookTotalPages, isPdfBook } from '../utils/bookUtils'
+
+const PDF_PAGE_PREVIEW_LIMIT = DEFAULT_PDF_PAGE_LIMIT
 
 const EditBook = () => {
     const navigate = useNavigate()
@@ -36,10 +39,61 @@ const EditBook = () => {
     const [currentPageIndex, setCurrentPageIndex] = useState(0)
     const [isPageModalOpen, setIsPageModalOpen] = useState(false)
     const [pages, setPages] = useState([])
+    const [isPdfFile, setIsPdfFile] = useState(false)
     const thumbnailRefs = useRef([])
     const [deletingPageId, setDeletingPageId] = useState(null)
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
     const [pageToDelete, setPageToDelete] = useState(null)
+
+    const buildPagesFromBook = (book) => {
+        if (!book) return []
+        if (isPdfBook(book)) {
+            const totalPages = getBookTotalPages(book, PDF_PAGE_PREVIEW_LIMIT) || PDF_PAGE_PREVIEW_LIMIT
+            return Array.from({ length: totalPages }).map((_, index) => {
+                const pageNumber = index + 1
+                return {
+                    id: pageNumber,
+                    pageNumber,
+                    type: pageNumber === 1 ? 'cover' : 'coloring',
+                    image: getBookPageUrl(book, pageNumber) || clip2,
+                    title: pageNumber === 1 ? 'Cover Page' : `Page ${pageNumber}`,
+                    isPdfGenerated: true
+                }
+            })
+        }
+
+        if (book?.pages && book.pages.length > 0) {
+            return book.pages.map((page, index) => ({
+                id: page.pageNumber || index + 1,
+                pageNumber: page.pageNumber || index + 1,
+                type: index === 0 ? 'cover' : 'coloring',
+                image: page.imageUrl || clip2,
+                title: index === 0 ? 'Cover Page' : `Coloring Page ${index}`,
+                originalData: page
+            }))
+        }
+
+        return [
+            { id: 1, pageNumber: 1, type: 'cover', image: clip2, title: 'Cover Page' },
+            { id: 2, pageNumber: 2, type: 'coloring', image: editImage1, title: 'Coloring Page 1' },
+            { id: 3, pageNumber: 3, type: 'coloring', image: editImage2, title: 'Coloring Page 2' },
+            { id: 4, pageNumber: 4, type: 'coloring', image: editImage3, title: 'Coloring Page 3' },
+            { id: 5, pageNumber: 5, type: 'coloring', image: editImage4, title: 'Coloring Page 4' }
+        ]
+    }
+
+    const handlePageImageError = (page) => {
+        if (!isPdfFile || !page?.pageNumber || page.pageNumber <= 1) return
+        setPages((prevPages) => {
+            const hasPage = prevPages.some((p) => p.pageNumber === page.pageNumber)
+            if (!hasPage) return prevPages
+            return prevPages.filter((p) => p.pageNumber < page.pageNumber)
+        })
+        setCurrentPageIndex((prevIndex) => {
+            const newIndex = page.pageNumber - 2
+            return newIndex >= 0 ? Math.min(prevIndex, newIndex) : 0
+        })
+    }
 
     // Fetch book data on component mount 
     useEffect(() => {
@@ -60,6 +114,7 @@ const EditBook = () => {
                     // The book data is nested in response.data.book
                     const book = response.data.book || response.data
                     setBookData(book)
+                    setIsPdfFile(isPdfBook(book))
                     
                     // Update form data
                     setFormData({
@@ -69,32 +124,13 @@ const EditBook = () => {
                         price: book.price || ''
                     })
                     
-
-                    // Transform pages data - use the book data we just extracted
-                    if (book?.pages && book.pages.length > 0) {
-                        const transformedPages = book.pages.map((page, index) => ({
-                            id: page.pageNumber || index + 1,
-                            type: index === 0 ? 'cover' : 'coloring',
-                            image: page.imageUrl || clip2,
-                            title: index === 0 ? 'Cover Page' : `Coloring Page ${index}`,
-                            originalData: page
-                        }))
-                        setPages(transformedPages)
-                    } else {
-                        // Fallback to static data if no pages
-                        setPages([
-                            { id: 1, type: 'cover', image: clip2, title: 'Cover Page'},
-                            { id: 2, type: 'coloring', image: editImage1, title: 'Coloring Page 1'},
-                            { id: 3, type: 'coloring', image: editImage2, title: 'Coloring Page 2'},
-                            { id: 4, type: 'coloring', image: editImage3, title: 'Coloring Page 3'},
-                            { id: 5, type: 'coloring', image: editImage4, title: 'Coloring Page 4'}
-                        ])
-                    }
+                    setPages(buildPagesFromBook(book))
                 } catch (apiError) {
                     // Fallback to location state data
                     const fallbackBook = location.state?.book
                     if (fallbackBook) {
                         setBookData(fallbackBook)
+                        setIsPdfFile(isPdfBook(fallbackBook))
                         setFormData({
                             bookName: fallbackBook.title || fallbackBook.name || '',
                             description: fallbackBook.description || '',
@@ -102,26 +138,7 @@ const EditBook = () => {
                             price: fallbackBook.price || ''
                         })
 
-                        // Transform pages for fallback data
-                        if (fallbackBook.pages && fallbackBook.pages.length > 0) {
-                            const transformedPages = fallbackBook.pages.map((page, index) => ({
-                                id: page.pageNumber || index + 1,
-                                type: index === 0 ? 'cover' : 'coloring',
-                                image: page.imageUrl || clip2,
-                                title: index === 0 ? 'Cover Page' : `Coloring Page ${index}`,
-                                originalData: page
-                            }))
-                            setPages(transformedPages)
-                        } else {
-                            // Fallback to static data if no pages
-                            setPages([
-                                { id: 1, type: 'cover', image: clip2, title: 'Cover Page'},
-                                { id: 2, type: 'coloring', image: editImage1, title: 'Coloring Page 1'},
-                                { id: 3, type: 'coloring', image: editImage2, title: 'Coloring Page 2'},
-                                { id: 4, type: 'coloring', image: editImage3, title: 'Coloring Page 3'},
-                                { id: 5, type: 'coloring', image: editImage4, title: 'Coloring Page 4'}
-                            ])
-                        }
+                        setPages(buildPagesFromBook(fallbackBook))
                     } else {
                         throw apiError
                     }
@@ -184,6 +201,7 @@ const EditBook = () => {
     }
 
     const handleAddNewPage = () => {
+        if (isPdfFile) return
         setIsPageModalOpen(true)
     }
 
@@ -198,6 +216,7 @@ const EditBook = () => {
     }
 
     const handleDeletePageClick = (page, index) => {
+        if (isPdfFile) return
         // Prevent deletion if only one page remains
         if (pages.length <= 1) {
             alert('Cannot delete the last page of the book')
@@ -209,7 +228,7 @@ const EditBook = () => {
     }
 
     const confirmDeletePage = async () => {
-        if (!pageToDelete) return
+        if (!pageToDelete || isPdfFile) return
 
         const { page, index } = pageToDelete
 
@@ -305,13 +324,15 @@ const EditBook = () => {
                     <h2 className="text-2xl font-semibold text-primary">{bookData.name || 'Untitled Book'}</h2>
                     
                          {/* Add New Page Button */}
-                         <div 
-                             className="flex justify-end items-center gap-2 text-[#00673A] cursor-pointer mt-1 sm:mt-0 hover:text-[#048B50] transition-colors"
-                             onClick={handleAddNewPage}
-                         >
-                             <img src={upload2} alt="Upload" className="w-4 h-4 cursor-pointer" />
-                             <span className="text-sm text-[#00673A] cursor-pointer">Add New Page</span>
-                         </div>
+                         {!isPdfFile && (
+                             <div 
+                                 className="flex justify-end items-center gap-2 text-[#00673A] cursor-pointer mt-1 sm:mt-0 hover:text-[#048B50] transition-colors"
+                                 onClick={handleAddNewPage}
+                             >
+                                 <img src={upload2} alt="Upload" className="w-4 h-4 cursor-pointer" />
+                                 <span className="text-sm text-[#00673A] cursor-pointer">Add New Page</span>
+                             </div>
+                         )}
                     </div>
                     
                     {/* Page Thumbnails */}
@@ -350,11 +371,17 @@ const EditBook = () => {
                                                 src={page.image} 
                                                 alt={page.title}
                                                 className="w-full h-full object-cover rounded-lg"
+                                                onError={(e) => {
+                                                    if (e.currentTarget.dataset.fallback === 'true') return
+                                                    e.currentTarget.dataset.fallback = 'true'
+                                                    e.currentTarget.src = clip2
+                                                    handlePageImageError(page)
+                                                }}
                                             />
                                         </div>
                                         
                                         {/* Delete Button - Always visible */}
-                                        {pages.length > 1 && (
+                                        {!isPdfFile && pages.length > 1 && (
                                             <button
                                                 onClick={(e) => {
                                                     e.stopPropagation()
@@ -476,13 +503,15 @@ const EditBook = () => {
                  </div>
 
              {/* Add Page Modal */}
-             <AddPageModal
-                 isOpen={isPageModalOpen}
-                 onClose={() => setIsPageModalOpen(false)}
-                 onAddPage={handleAddPage}
-                 bookId={bookId || location.state?.book?.id}
-                 existingPages={pages}
-             />
+            {!isPdfFile && (
+                <AddPageModal
+                    isOpen={isPageModalOpen}
+                    onClose={() => setIsPageModalOpen(false)}
+                    onAddPage={handleAddPage}
+                    bookId={bookId || location.state?.book?.id}
+                    existingPages={pages}
+                />
+            )}
 
              {/* Delete Page Modal */}
              <DeleteModal
