@@ -62,12 +62,12 @@ export const useBooks = (params = {}) => {
     }
   };
 
-  const uploadBookFile = async (bookId, file) => {
+  const uploadBookFile = async (bookId, files) => {
     try {
       setIsLoading(true);
       setError(null);
       
-      const response = await apiService.uploadBookFile(bookId, file);
+      const response = await apiService.uploadBookFile(bookId, files);
       
       if (response.success) {
         // Refresh the books list

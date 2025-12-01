@@ -25,7 +25,12 @@ const validationSchema = Yup.object({
                 .required('Price is required for premium books'),
             otherwise: schema => schema.notRequired(),
         }),
-    file: Yup.mixed().required('PDF file is required'),
+    files: Yup.mixed()
+        .test(
+            'files-required',
+            'At least one image file is required',
+            (value) => value && value.length > 0
+        ),
 })
 
 const initialValues = {
@@ -33,7 +38,7 @@ const initialValues = {
     description: '',
     isFree: true,
     price: '',
-    file: null,
+    files: [],
 }
 
 const AddBookModal = ({ isOpen, onClose, onSubmit }) => {
@@ -51,9 +56,9 @@ const AddBookModal = ({ isOpen, onClose, onSubmit }) => {
         }
     }, [isOpen])
 
-    const uploadFileToBook = async (bookId, file) => {
+    const uploadFileToBook = async (bookId, files) => {
         try {
-            const result = await apiService.uploadBookFile(bookId, file)
+            const result = await apiService.uploadBookFile(bookId, files)
             return { success: true, data: result }
         } catch (error) {
             return { success: false, error: error.message }
@@ -94,7 +99,7 @@ const AddBookModal = ({ isOpen, onClose, onSubmit }) => {
                             const bookResult = await onSubmit(bookData)
 
                             if (bookResult.success) {
-                                if (values.file) {
+                                if (values.files && values.files.length > 0) {
                                     const bookId = bookResult.data?.book?._id
                                         || bookResult.data?._id
                                         || bookResult.data?.id
@@ -103,7 +108,7 @@ const AddBookModal = ({ isOpen, onClose, onSubmit }) => {
                                         throw new Error('Book ID not found in response')
                                     }
 
-                                    const uploadResult = await uploadFileToBook(bookId, values.file)
+                                    const uploadResult = await uploadFileToBook(bookId, values.files)
 
                                     if (!uploadResult.success) {
                                         setStatus(uploadResult.error || 'Failed to upload file')
@@ -139,40 +144,79 @@ const AddBookModal = ({ isOpen, onClose, onSubmit }) => {
                     }) => (
                         <Form className="py-3 px-5 space-y-4 pb-6">
                             {/* Upload Section */}
-                            <div className="border-3 border-dashed border-[#B5B5B4] rounded-2xl p-6 text-center hover:border-green-500 transition-colors">
-                                <div className="flex flex-col items-center gap-3">
-                                    <img src={upload} alt="Upload" className="w-16 h-16" />
-                                    <div>
-                                        <h3 className="text-lg font-semibold text-primary mb-2">Upload new book</h3>
-                                        <p className="text-sm text-gray-500">Supported format: PDF</p>
+                            <div className="border-3 border-dashed border-[#B5B5B4] rounded-2xl p-6 hover:border-green-500 transition-colors">
+                                <div className="flex flex-col gap-4">
+                                    <div className="flex flex-col items-center gap-3 text-center">
+                                        <img src={upload} alt="Upload" className="w-16 h-16" />
+                                        <div>
+                                            <h3 className="text-lg font-semibold text-primary mb-2">Upload book pages</h3>
+                                            <p className="text-sm text-gray-500">Supported formats: JPG, JPEG, PNG, GIF (you can select multiple)</p>
+                                        </div>
+                                        <Button
+                                            type="button"
+                                            className="cursor-pointer"
+                                            onClick={() => fileInputRef.current?.click()}
+                                            disabled={isSubmitting}
+                                        >
+                                            Choose File
+                                        </Button>
+                                        <input
+                                            ref={fileInputRef}
+                                            type="file"
+                                            accept=".jpg,.jpeg,.png,.gif"
+                                            multiple
+                                            onChange={(e) => {
+                                                const files = Array.from(e.target.files || [])
+                                                setFieldValue('files', files)
+                                                setFieldTouched('files', true, false)
+                                            }}
+                                            className="hidden"
+                                            disabled={isSubmitting}
+                                        />
+                                        {touched.files && errors.files && (
+                                            <p className="text-sm text-red-500">{errors.files}</p>
+                                        )}
                                     </div>
-                                    <Button
-                                        type="button"
-                                        className="cursor-pointer"
-                                        onClick={() => fileInputRef.current?.click()}
-                                        disabled={isSubmitting}
-                                    >
-                                        Choose File
-                                    </Button>
-                                    <input
-                                        ref={fileInputRef}
-                                        type="file"
-                                        accept=".pdf"
-                                        onChange={(e) => {
-                                            const file = e.target.files?.[0] || null
-                                            setFieldValue('file', file)
-                                            setFieldTouched('file', true, false)
-                                        }}
-                                        className="hidden"
-                                        disabled={isSubmitting}
-                                    />
-                                    {values.file && (
-                                        <p className="text-sm text-[#048B50] font-medium">
-                                            Selected: {values.file.name}
-                                        </p>
-                                    )}
-                                    {touched.file && errors.file && (
-                                        <p className="text-sm text-red-500">{errors.file}</p>
+
+                                    {/* Selected files preview */}
+                                    {values.files && values.files.length > 0 && (
+                                        <div className="mt-2">
+                                            <p className="text-sm text-[#048B50] font-medium mb-2">
+                                                Selected: {values.files.length} file(s)
+                                            </p>
+                                            <div className="flex flex-wrap gap-3 justify-center sm:justify-start">
+                                                {values.files.map((file, index) => (
+                                                    <div
+                                                        key={index}
+                                                        className="relative w-20 h-20 rounded-lg overflow-hidden border border-gray-200 bg-white shadow-sm"
+                                                    >
+                                                        <img
+                                                            src={URL.createObjectURL(file)}
+                                                            alt={file.name}
+                                                            className="w-full h-full object-cover"
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                const updated = values.files.filter((_, i) => i !== index)
+                                                                setFieldValue('files', updated)
+                                                                if (updated.length === 0 && fileInputRef.current) {
+                                                                    fileInputRef.current.value = ''
+                                                                }
+                                                            }}
+                                                            className="absolute top-[1px] right-[1px] bg-white rounded-full shadow-md cursor-pointer hover:scale-110 transition-transform p-0.5"
+                                                            title="Remove"
+                                                        >
+                                                            <img
+                                                                src={closeCircle}
+                                                                alt="Remove"
+                                                                className="w-5 h-5"
+                                                            />
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
                                     )}
                                 </div>
                             </div>

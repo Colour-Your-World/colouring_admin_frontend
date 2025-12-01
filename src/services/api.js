@@ -196,9 +196,21 @@ class ApiService {
     return data;
   }
 
-  async uploadBookFile(bookId, file) {
+  async uploadBookFile(bookId, files) {
     const formData = new FormData();
-    formData.append('file', file);
+
+    // Support single file, FileList, or array of files
+    if (Array.isArray(files)) {
+      files.forEach((file) => {
+        if (file) formData.append('files', file);
+      });
+    } else if (files && typeof files.length === 'number') {
+      Array.from(files).forEach((file) => {
+        if (file) formData.append('files', file);
+      });
+    } else if (files) {
+      formData.append('files', files);
+    }
 
     const url = `${this.baseURL}/books/${bookId}/upload`;
     const config = {
