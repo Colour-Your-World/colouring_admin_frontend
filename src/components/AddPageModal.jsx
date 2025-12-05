@@ -13,7 +13,22 @@ const validationSchema = Yup.object({
         .max(120, 'Title must be 120 characters or less')
         .nullable(),
     pageType: Yup.mixed().oneOf(['cover', 'coloring']).required('Page type is required'),
-    file: Yup.mixed().required('Image file is required.'),
+    file: Yup.mixed()
+        .required('Image file is required.')
+        .test(
+            'file-type',
+            'Only image files (JPG, JPEG, PNG) are allowed',
+            (file) => {
+                if (!file) return false
+                const name = (file.name || '').toLowerCase()
+                const isImage = file.type?.startsWith('image/')
+                const hasValidExt =
+                    name.endsWith('.jpg') ||
+                    name.endsWith('.jpeg') ||
+                    name.endsWith('.png')
+                return isImage && hasValidExt
+            }
+        ),
 })
 
 const initialValues = {
@@ -138,7 +153,7 @@ const AddPageModal = ({ isOpen, onClose, onAddPage, bookId, existingPages = [] }
                                     <input
                                         ref={fileInputRef}
                                         type="file"
-                                        accept=".png,.jpg,.jpeg,.pdf"
+                                        accept=".png,.jpg,.jpeg"
                                         onChange={(e) => {
                                             const file = e.target.files?.[0] || null
                                             setFieldValue('file', file)

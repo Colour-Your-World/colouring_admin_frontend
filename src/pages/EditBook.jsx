@@ -73,13 +73,8 @@ const EditBook = () => {
             }))
         }
 
-        return [
-            { id: 1, pageNumber: 1, type: 'cover', image: clip2, title: 'Cover Page' },
-            { id: 2, pageNumber: 2, type: 'coloring', image: editImage1, title: 'Coloring Page 1' },
-            { id: 3, pageNumber: 3, type: 'coloring', image: editImage2, title: 'Coloring Page 2' },
-            { id: 4, pageNumber: 4, type: 'coloring', image: editImage3, title: 'Coloring Page 3' },
-            { id: 5, pageNumber: 5, type: 'coloring', image: editImage4, title: 'Coloring Page 4' }
-        ]
+        // No mock pages – if book has no pages yet, start with an empty list
+        return []
     }
 
     const handlePageImageError = (page) => {

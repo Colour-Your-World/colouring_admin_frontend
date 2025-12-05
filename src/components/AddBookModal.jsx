@@ -30,6 +30,23 @@ const validationSchema = Yup.object({
             'files-required',
             'At least one image file is required',
             (value) => value && value.length > 0
+        )
+        .test(
+            'files-type',
+            'Only image files (JPG, JPEG, PNG) are allowed',
+            (value) => {
+                if (!value || value.length === 0) return true
+                return value.every((file) => {
+                    if (!file) return false
+                    const name = (file.name || '').toLowerCase()
+                    const isImage = file.type?.startsWith('image/')
+                    const hasValidExt =
+                        name.endsWith('.jpg') ||
+                        name.endsWith('.jpeg') ||
+                        name.endsWith('.png')
+                    return isImage && hasValidExt
+                })
+            }
         ),
 })
 
@@ -150,7 +167,7 @@ const AddBookModal = ({ isOpen, onClose, onSubmit }) => {
                                         <img src={upload} alt="Upload" className="w-16 h-16" />
                                         <div>
                                             <h3 className="text-lg font-semibold text-primary mb-2">Upload book pages</h3>
-                                            <p className="text-sm text-gray-500">Supported formats: JPG, JPEG, PNG, GIF (you can select multiple)</p>
+                                            <p className="text-sm text-gray-500">Supported formats: JPG, JPEG, PNG (you can select multiple)</p>
                                         </div>
                                         <Button
                                             type="button"
@@ -163,7 +180,7 @@ const AddBookModal = ({ isOpen, onClose, onSubmit }) => {
                                         <input
                                             ref={fileInputRef}
                                             type="file"
-                                            accept=".jpg,.jpeg,.png,.gif"
+                                            accept=".jpg,.jpeg,.png"
                                             multiple
                                             onChange={(e) => {
                                                 const files = Array.from(e.target.files || [])
