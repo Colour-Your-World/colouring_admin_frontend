@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/api';
-import logo from '../assets/logo.svg';
+import logo from '../assets/logo.jpeg';
 import downIcon from '../assets/down.svg';
 import logoutIcon from '../assets/dropLogout.svg';
 import profileIcon from '../assets/dropProfile.svg';
@@ -71,15 +71,19 @@ const Header = () => {
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         {/* Logo Section */}
         <div className="flex items-center gap-4">
-          <img 
-            src={logo} 
-            alt="Logo" 
-            className="h-8 w-8 md:h-10 md:w-10 cursor-pointer" 
-            onClick={() => navigate('/home')}
-          />
+          <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/home')}>
+            <img 
+              src={logo} 
+              alt="Logo" 
+              className="h-8 w-8 md:h-10 md:w-10" 
+            />
+            <span className="text-lg md:text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent hidden sm:block">
+              COLOR YOUR JOY
+            </span>
+          </div>
           <button
             onClick={() => navigate('/home')}
-            className="text-sm md:text-base font-medium text-primary hover:text-secondary transition-colors cursor-pointer"
+            className="ml-2 text-sm md:text-base font-medium text-primary hover:text-secondary transition-colors cursor-pointer"
           >
             Home
           </button>

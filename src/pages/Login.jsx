@@ -5,7 +5,7 @@ import Layout from '../components/Layout';
 import Input from '../components/Input';
 import Button from '../components/Button';
 import { useAuth } from '../contexts/AuthContext';
-import logo from '../assets/logo.svg';
+import logo from '../assets/logo.jpeg';
 import loginText from '../assets/loginText.svg';
 import clip1 from '../assets/clip1.svg';
 import clip2 from '../assets/clip2.svg';

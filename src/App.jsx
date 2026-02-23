@@ -13,6 +13,8 @@ import ManagePlans from './pages/ManagePlans'
 import AddNewPlan from './pages/AddNewPlan'
 import EditPlan from './pages/EditPlan'
 import EditProfile from './pages/EditProfile'
+import PrivacyPolicy from './pages/PrivacyPolicy'
+import TermsAndConditions from './pages/TermsAndConditions'
 
 function App() {
   return (
@@ -29,6 +31,8 @@ function App() {
         <Route path="/plans/add" element={<Layout><AddNewPlan /></Layout>} />
         <Route path="/plans/edit/:planId" element={<Layout><EditPlan /></Layout>} />
         <Route path="/profile/edit" element={<Layout><EditProfile /></Layout>} />
+        <Route path="/privacy-policy" element={<Layout showHeader={false}><PrivacyPolicy /></Layout>} />
+        <Route path="/terms-and-conditions" element={<Layout showHeader={false}><TermsAndConditions /></Layout>} />
       </Routes>
     </AuthProvider>
   )
