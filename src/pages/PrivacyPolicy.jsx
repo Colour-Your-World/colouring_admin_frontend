@@ -53,10 +53,25 @@ const PrivacyPolicy = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-4 border-l-4 border-primary pl-4">5. Your Rights</h2>
-            <p>
-              You can update your profile information or delete your account at any time within the app settings.
+            <h2 className="text-2xl font-semibold text-gray-900 mb-4 border-l-4 border-primary pl-4">5. Your Rights & Data Deletion</h2>
+            <p className="mb-4">
+              You have the right to access, update, or delete your personal information. You can manage your profile details directly within the app settings.
             </p>
+            <div className="bg-red-50 border border-red-100 rounded-xl p-6">
+              <h3 className="text-lg font-semibold text-red-800 mb-2">How to Delete Your Account</h3>
+              <p className="text-red-700 mb-4">
+                If you wish to permanently delete your account and all associated data, you can do so by following these steps:
+              </p>
+              <ol className="list-decimal pl-6 space-y-2 text-red-700">
+                <li>Go to the <strong>Profile</strong> page in the app.</li>
+                <li>Click on <strong>Edit Profile</strong>.</li>
+                <li>Scroll down and click the <strong>"Delete Account"</strong> button.</li>
+                <li>Confirm the deletion in the popup modal.</li>
+              </ol>
+              <p className="mt-4 text-sm text-red-600 italic">
+                Note: This action is permanent. Once deleted, your account, payments, and subscriptions will be removed from our database and cannot be recovered.
+              </p>
+            </div>
           </section>
 
           <section>
