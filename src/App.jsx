@@ -15,6 +15,9 @@ import EditPlan from './pages/EditPlan'
 import EditProfile from './pages/EditProfile'
 import PrivacyPolicy from './pages/PrivacyPolicy'
 import TermsAndConditions from './pages/TermsAndConditions'
+import Subscribe from './pages/Subscribe'
+import BuyBook from './pages/BuyBook'
+import PaymentSuccess from './pages/PaymentSuccess'
 
 function App() {
   return (
@@ -33,6 +36,11 @@ function App() {
         <Route path="/profile/edit" element={<Layout><EditProfile /></Layout>} />
         <Route path="/privacy-policy" element={<Layout showHeader={false}><PrivacyPolicy /></Layout>} />
         <Route path="/terms-and-conditions" element={<Layout showHeader={false}><TermsAndConditions /></Layout>} />
+        
+        {/* Public Payment Pages (Browser mein khulenge - Apple Compliance) */}
+        <Route path="/subscribe" element={<Subscribe />} />
+        <Route path="/buy-book" element={<BuyBook />} />
+        <Route path="/payment-success" element={<PaymentSuccess />} />
       </Routes>
     </AuthProvider>
   )
