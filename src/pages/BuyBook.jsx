@@ -25,8 +25,10 @@ const BuyBook = () => {
         const response = await fetch(`${API_BASE_URL}/books/${bookId}`);
         const data = await response.json();
 
-        if (data.success && data.data) {
+        // 403 status par bhi agar data.data aa raha hai toh use dikhao
+        if (data.data) {
           setBook(data.data);
+          setError(null);
         } else {
           setError('Could not load book details.');
         }
