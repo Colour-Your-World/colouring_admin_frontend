@@ -1,8 +1,95 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { loadStripe } from '@stripe/stripe-js';
+import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL + '/api';
+const STRIPE_PUBLISHABLE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
 
+// Initialize Stripe
+const stripePromise = STRIPE_PUBLISHABLE_KEY ? loadStripe(STRIPE_PUBLISHABLE_KEY) : null;
+
+// ─── Stripe Payment Form Component ─────────────────────────────────────
+const CheckoutForm = ({ bookPrice, paymentId, token, onSuccess, onError }) => {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [paying, setPaying] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!stripe || !elements) return;
+
+    try {
+      setPaying(true);
+      onError(null);
+
+      const { error, paymentIntent } = await stripe.confirmPayment({
+        elements,
+        confirmParams: {
+          return_url: window.location.origin + '/payment-success?type=book',
+        },
+        redirect: 'if_required',
+      });
+
+      if (error) {
+        onError(error.message);
+      } else if (paymentIntent && paymentIntent.status === 'succeeded') {
+        // Confirm with our backend
+        try {
+          await fetch(`${API_BASE_URL}/payments/book/confirm`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+            },
+            body: JSON.stringify({ paymentId }),
+          });
+        } catch (e) {
+          // Ignore confirm errors - payment already succeeded
+        }
+        onSuccess();
+      }
+    } catch (err) {
+      onError('Payment failed. Please try again.');
+    } finally {
+      setPaying(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="mt-6">
+      <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100 mb-6">
+        <PaymentElement
+          options={{
+            layout: 'tabs',
+          }}
+        />
+      </div>
+
+      <button
+        type="submit"
+        disabled={!stripe || paying}
+        className="w-full py-4 px-6 rounded-2xl text-white font-bold text-lg shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 transition-all duration-300 bg-primary group"
+      >
+        {paying ? (
+          <span className="flex items-center justify-center gap-2">
+            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+            Processing Payment...
+          </span>
+        ) : (
+          <span className="flex items-center justify-center gap-2">
+            Pay Now — ${bookPrice}
+            <svg className="w-5 h-5 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+            </svg>
+          </span>
+        )}
+      </button>
+    </form>
+  );
+};
+
+// ─── Main BuyBook Component ─────────────────────────────────────────────
 const BuyBook = () => {
   const [searchParams] = useSearchParams();
   const userId = searchParams.get('userId');
@@ -15,6 +102,11 @@ const BuyBook = () => {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
 
+  // Stripe Payment Intent state
+  const [clientSecret, setClientSecret] = useState(null);
+  const [paymentId, setPaymentId] = useState(null);
+  const [showPaymentForm, setShowPaymentForm] = useState(false);
+
   // Fetch book details
   useEffect(() => {
     const fetchBook = async () => {
@@ -25,9 +117,8 @@ const BuyBook = () => {
         const response = await fetch(`${API_BASE_URL}/books/${bookId}`);
         const data = await response.json();
 
-        // Extract book data even if nested under 'book' key
         const bookData = data.data?.book || data.data;
-        
+
         if (bookData) {
           setBook(bookData);
           setError(null);
@@ -44,7 +135,7 @@ const BuyBook = () => {
     fetchBook();
   }, [bookId]);
 
-  // Handle book purchase
+  // Handle "Buy Now" click → create Payment Intent
   const handlePurchase = async () => {
     if (!userId || !bookId) return;
 
@@ -58,26 +149,38 @@ const BuyBook = () => {
           'Content-Type': 'application/json',
           ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({
-          bookId: bookId,
-        }),
+        body: JSON.stringify({ bookId }),
       });
 
       const data = await response.json();
-      console.log('Payment response:', data); // Debugging for developers
+      console.log('Payment response:', data);
 
+      // Check if backend returned a Checkout URL (redirect flow)
       const checkoutUrl = data.data?.url || data.url || data.session?.url;
-
       if (data.success && checkoutUrl) {
         window.location.href = checkoutUrl;
-      } else if (data.success) {
+        return;
+      }
+
+      // Check if backend returned a clientSecret (Payment Intent flow)
+      const secret = data.data?.clientSecret || data.clientSecret;
+      if (data.success && secret) {
+        setClientSecret(secret);
+        setPaymentId(data.data?.paymentId || data.paymentId);
+        setShowPaymentForm(true);
+        return;
+      }
+
+      // If success but no URL and no clientSecret (e.g. free book)
+      if (data.success) {
         setSuccess(true);
         setTimeout(() => {
           window.location.href = 'coloryourjoy://payment-success';
         }, 3000);
-      } else {
-        setError(data.message || 'Payment failed. Please try again.');
+        return;
       }
+
+      setError(data.message || 'Payment failed. Please try again.');
     } catch (err) {
       setError('Something went wrong. Please try again.');
     } finally {
@@ -85,7 +188,16 @@ const BuyBook = () => {
     }
   };
 
-  // Success state
+  // Called when Stripe payment succeeds
+  const handlePaymentSuccess = () => {
+    setShowPaymentForm(false);
+    setSuccess(true);
+    setTimeout(() => {
+      window.location.href = 'coloryourjoy://payment-success';
+    }, 3000);
+  };
+
+  // ─── Success Screen ────────────────────────────────────────────────────
   if (success) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center p-4">
@@ -99,8 +211,7 @@ const BuyBook = () => {
           <p className="text-gray-600 mb-6">Your book is now unlocked. Redirecting you back to the app...</p>
           <a
             href="coloryourjoy://payment-success"
-            className="inline-block w-full py-3 px-6 rounded-xl text-white font-semibold text-lg"
-            style={{ background: 'linear-gradient(246.62deg, #074B2D 0%, #048B50 100%)' }}
+            className="inline-block w-full py-3 px-6 rounded-xl text-white font-semibold text-lg bg-primary"
           >
             Open App
           </a>
@@ -109,7 +220,7 @@ const BuyBook = () => {
     );
   }
 
-  // Error: Missing params
+  // ─── Invalid Link Screen ──────────────────────────────────────────────
   if (!userId || !bookId) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center p-4">
@@ -126,6 +237,7 @@ const BuyBook = () => {
     );
   }
 
+  // ─── Main Purchase Page ───────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center p-4">
       <div className="bg-white rounded-3xl shadow-xl p-6 md:p-10 max-w-md w-full">
@@ -137,7 +249,9 @@ const BuyBook = () => {
             </svg>
           </div>
           <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-1">COLOR YOUR JOY</h1>
-          <p className="text-gray-500 font-medium">Complete your purchase</p>
+          <p className="text-gray-500 font-medium">
+            {showPaymentForm ? 'Enter payment details' : 'Complete your purchase'}
+          </p>
         </div>
 
         {/* Loading */}
@@ -158,12 +272,12 @@ const BuyBook = () => {
           </div>
         )}
 
-        {/* Book Details */}
+        {/* Book Details + Payment */}
         {!loading && book && (
           <>
             <div className="bg-gray-50 rounded-2xl p-5 mb-6 border border-gray-100">
               {/* Book Cover */}
-              {book.coverImage && (
+              {book.coverImage && !showPaymentForm && (
                 <div className="w-full h-52 rounded-xl overflow-hidden mb-5 shadow-sm border border-gray-200 bg-white">
                   <img
                     src={book.coverImage}
@@ -174,7 +288,7 @@ const BuyBook = () => {
               )}
 
               <h2 className="text-xl font-bold text-gray-900 mb-2 leading-tight">{book.name}</h2>
-              {book.description && (
+              {book.description && !showPaymentForm && (
                 <p className="text-gray-600 text-sm mb-5 line-clamp-3">{book.description}</p>
               )}
 
@@ -194,7 +308,7 @@ const BuyBook = () => {
               </div>
 
               {/* Pages info */}
-              {book.pages && book.pages.length > 0 && (
+              {book.pages && book.pages.length > 0 && !showPaymentForm && (
                 <div className="mt-4 flex items-center gap-2 text-xs font-semibold text-green-700 bg-green-50 w-fit px-3 py-1 rounded-full border border-green-100">
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
@@ -204,26 +318,57 @@ const BuyBook = () => {
               )}
             </div>
 
-            {/* Buy Button */}
-            <button
-              onClick={handlePurchase}
-              disabled={processing}
-              className="w-full py-4 px-6 rounded-2xl text-white font-bold text-lg shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 transition-all duration-300 bg-primary group"
-            >
-              {processing ? (
-                <span className="flex items-center justify-center gap-2">
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  Processing...
-                </span>
-              ) : (
-                <span className="flex items-center justify-center gap-2">
-                  {book.price > 0 ? `Buy Now — $${book.price}` : 'Get It For Free'}
-                  <svg className="w-5 h-5 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                  </svg>
-                </span>
-              )}
-            </button>
+            {/* ── Stripe Payment Form (shown after clicking Buy Now) ── */}
+            {showPaymentForm && clientSecret && stripePromise ? (
+              <Elements
+                stripe={stripePromise}
+                options={{
+                  clientSecret,
+                  appearance: {
+                    theme: 'stripe',
+                    variables: {
+                      colorPrimary: '#048B50',
+                      borderRadius: '12px',
+                    },
+                  },
+                }}
+              >
+                <CheckoutForm
+                  bookPrice={book.price}
+                  paymentId={paymentId}
+                  token={token}
+                  onSuccess={handlePaymentSuccess}
+                  onError={setError}
+                />
+              </Elements>
+            ) : showPaymentForm && !stripePromise ? (
+              <div className="bg-red-50 border border-red-200 rounded-2xl p-4 mb-6 text-center">
+                <p className="text-red-700 text-sm font-medium">
+                  Stripe is not configured. Please add <code className="bg-red-100 px-1 rounded">VITE_STRIPE_PUBLISHABLE_KEY</code> to your .env file.
+                </p>
+              </div>
+            ) : (
+              /* ── Buy Now Button (initial state) ── */
+              <button
+                onClick={handlePurchase}
+                disabled={processing}
+                className="w-full py-4 px-6 rounded-2xl text-white font-bold text-lg shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 transition-all duration-300 bg-primary group"
+              >
+                {processing ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Processing...
+                  </span>
+                ) : (
+                  <span className="flex items-center justify-center gap-2">
+                    {book.price > 0 ? `Buy Now — $${book.price}` : 'Get It For Free'}
+                    <svg className="w-5 h-5 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                    </svg>
+                  </span>
+                )}
+              </button>
+            )}
           </>
         )}
 
