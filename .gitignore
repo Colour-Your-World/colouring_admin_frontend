@@ -15,7 +15,6 @@ dist-ssr/
 *.local
 
 # Editor directories and files
-.vscode/
 .idea/
 *.suo
 *.ntvs*
@@ -28,6 +27,5 @@ dist-ssr/
 Thumbs.db
 
 # Env files
-.env
-.env.local
 .env.*.local
+config.bat
