@@ -181,8 +181,14 @@ const BuyBook = () => {
               <div className="flex items-center justify-between bg-white rounded-2xl p-4 border border-gray-200 shadow-sm">
                 <span className="text-gray-600 font-semibold uppercase tracking-wider text-xs">Total Amount</span>
                 <div className="flex items-baseline gap-1">
-                  <span className="text-sm font-bold text-gray-400">$</span>
-                  <span className="text-3xl font-black text-gray-900">{book.price}</span>
+                  {book.price > 0 ? (
+                    <>
+                      <span className="text-sm font-bold text-gray-400">$</span>
+                      <span className="text-3xl font-black text-gray-900">{book.price}</span>
+                    </>
+                  ) : (
+                    <span className="text-3xl font-black text-green-700">FREE</span>
+                  )}
                 </div>
               </div>
 
@@ -210,7 +216,7 @@ const BuyBook = () => {
                 </span>
               ) : (
                 <span className="flex items-center justify-center gap-2">
-                  Buy Now — ${book.price}
+                  {book.price > 0 ? `Buy Now — $${book.price}` : 'Get It For Free'}
                   <svg className="w-5 h-5 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                   </svg>
