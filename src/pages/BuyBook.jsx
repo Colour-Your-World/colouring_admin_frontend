@@ -25,9 +25,11 @@ const BuyBook = () => {
         const response = await fetch(`${API_BASE_URL}/books/${bookId}`);
         const data = await response.json();
 
-        // 403 status par bhi agar data.data aa raha hai toh use dikhao
-        if (data.data) {
-          setBook(data.data);
+        // Extract book data even if nested under 'book' key
+        const bookData = data.data?.book || data.data;
+        
+        if (bookData) {
+          setBook(bookData);
           setError(null);
         } else {
           setError('Could not load book details.');
@@ -127,26 +129,30 @@ const BuyBook = () => {
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center p-4">
       <div className="bg-white rounded-3xl shadow-xl p-6 md:p-10 max-w-md w-full">
         {/* Header */}
-        <div className="text-center mb-6">
-          <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3"
-               style={{ background: 'linear-gradient(246.62deg, #074B2D 0%, #048B50 100%)' }}>
-            <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="text-center mb-8">
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 bg-primary shadow-lg">
+            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
             </svg>
           </div>
-          <h1 className="text-xl md:text-2xl font-bold text-gray-900">Purchase Book</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-1">COLOR YOUR JOY</h1>
+          <p className="text-gray-500 font-medium">Complete your purchase</p>
         </div>
 
         {/* Loading */}
         {loading && (
-          <div className="flex items-center justify-center py-12">
-            <div className="w-10 h-10 border-4 border-green-200 border-t-green-600 rounded-full animate-spin"></div>
+          <div className="flex flex-col items-center justify-center py-12">
+            <div className="w-12 h-12 border-4 border-green-200 border-t-green-600 rounded-full animate-spin mb-4"></div>
+            <p className="text-gray-500 font-medium animate-pulse">Loading book details...</p>
           </div>
         )}
 
         {/* Error */}
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
+        {error && !loading && (
+          <div className="bg-red-50 border border-red-200 rounded-2xl p-4 mb-6 flex items-start gap-3">
+            <svg className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            </svg>
             <p className="text-red-700 text-sm font-medium">{error}</p>
           </div>
         )}
@@ -154,36 +160,39 @@ const BuyBook = () => {
         {/* Book Details */}
         {!loading && book && (
           <>
-            <div className="bg-gray-50 rounded-2xl p-5 mb-6">
+            <div className="bg-gray-50 rounded-2xl p-5 mb-6 border border-gray-100">
               {/* Book Cover */}
               {book.coverImage && (
-                <div className="w-full h-48 rounded-xl overflow-hidden mb-4">
+                <div className="w-full h-52 rounded-xl overflow-hidden mb-5 shadow-sm border border-gray-200 bg-white">
                   <img
                     src={book.coverImage}
                     alt={book.name}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover transform hover:scale-105 transition-transform duration-500"
                   />
                 </div>
               )}
 
-              <h2 className="text-xl font-bold text-gray-900 mb-2">{book.name}</h2>
+              <h2 className="text-xl font-bold text-gray-900 mb-2 leading-tight">{book.name}</h2>
               {book.description && (
-                <p className="text-gray-600 text-sm mb-4">{book.description}</p>
+                <p className="text-gray-600 text-sm mb-5 line-clamp-3">{book.description}</p>
               )}
 
               {/* Price */}
-              <div className="flex items-center justify-between bg-white rounded-xl p-4 border border-gray-200">
-                <span className="text-gray-600 font-medium">Price</span>
-                <span className="text-2xl font-bold text-gray-900">${book.price}</span>
+              <div className="flex items-center justify-between bg-white rounded-2xl p-4 border border-gray-200 shadow-sm">
+                <span className="text-gray-600 font-semibold uppercase tracking-wider text-xs">Total Amount</span>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-sm font-bold text-gray-400">$</span>
+                  <span className="text-3xl font-black text-gray-900">{book.price}</span>
+                </div>
               </div>
 
               {/* Pages info */}
               {book.pages && book.pages.length > 0 && (
-                <div className="mt-3 flex items-center gap-2 text-sm text-gray-500">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                <div className="mt-4 flex items-center gap-2 text-xs font-semibold text-green-700 bg-green-50 w-fit px-3 py-1 rounded-full border border-green-100">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                   </svg>
-                  <span>{book.pages.length} pages</span>
+                  <span>{book.pages.length} PAGES INCLUDED</span>
                 </div>
               )}
             </div>
@@ -192,8 +201,7 @@ const BuyBook = () => {
             <button
               onClick={handlePurchase}
               disabled={processing}
-              className="w-full py-4 px-6 rounded-2xl text-white font-bold text-lg shadow-lg transition-all duration-200 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-              style={{ background: 'linear-gradient(246.62deg, #074B2D 0%, #048B50 100%)' }}
+              className="w-full py-4 px-6 rounded-2xl text-white font-bold text-lg shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 transition-all duration-300 bg-primary group"
             >
               {processing ? (
                 <span className="flex items-center justify-center gap-2">
@@ -201,21 +209,29 @@ const BuyBook = () => {
                   Processing...
                 </span>
               ) : (
-                `Buy Now — $${book.price}`
+                <span className="flex items-center justify-center gap-2">
+                  Buy Now — ${book.price}
+                  <svg className="w-5 h-5 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                  </svg>
+                </span>
               )}
             </button>
           </>
         )}
 
         {/* Footer */}
-        <div className="mt-6 text-center space-y-2">
-          <p className="text-xs text-gray-400">
-            Secure payment powered by Stripe
-          </p>
+        <div className="mt-8 text-center space-y-4">
+          <div className="flex items-center justify-center gap-2 text-xs text-gray-400 font-medium">
+            <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+            </svg>
+            Secure 256-bit SSL encrypted payment
+          </div>
           <div className="flex items-center justify-center gap-4 text-xs">
-            <a href="/privacy-policy" className="text-green-700 hover:underline font-medium">Privacy Policy</a>
+            <a href="/privacy-policy" target="_blank" className="text-green-700 hover:text-green-800 transition-colors font-semibold">Privacy Policy</a>
             <span className="text-gray-300">|</span>
-            <a href="/terms-and-conditions" className="text-green-700 hover:underline font-medium">Terms & Conditions</a>
+            <a href="/terms-and-conditions" target="_blank" className="text-green-700 hover:text-green-800 transition-colors font-semibold">Terms & Conditions</a>
           </div>
         </div>
       </div>
