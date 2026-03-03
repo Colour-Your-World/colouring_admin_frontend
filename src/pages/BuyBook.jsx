@@ -64,12 +64,13 @@ const BuyBook = () => {
       });
 
       const data = await response.json();
+      console.log('Payment response:', data); // Debugging for developers
 
-      if (data.success && data.data?.url) {
-        // Redirect to Stripe Checkout
-        window.location.href = data.data.url;
+      const checkoutUrl = data.data?.url || data.url || data.session?.url;
+
+      if (data.success && checkoutUrl) {
+        window.location.href = checkoutUrl;
       } else if (data.success) {
-        // Payment succeeded directly
         setSuccess(true);
         setTimeout(() => {
           window.location.href = 'coloryourjoy://payment-success';
